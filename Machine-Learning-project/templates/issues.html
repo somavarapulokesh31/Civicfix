@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — My Complaints{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Complaints</h1><p>Browse and filter all submitted civic complaints</p></div>
+  <a href="{{ url_for('report') }}" class="btn btn-success">+ New Complaint</a>
+</div>
+
+<!-- Status filter pills -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for s in [('all','All'),('Open','Open'),('In Progress','In Progress'),('Closed','Closed')] %}
+  <a href="{{ url_for('issues', status=s[0]) }}"
+     class="btn btn-sm {{ 'btn-dark' if status_filter==s[0] else 'btn-outline-secondary' }}">
+    {{ s[1] }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="panel" style="padding:0">
+  {% if complaints %}
+  <div class="table-responsive">
+    <table class="cf-table">
+      <thead>
+        <tr>
+          <th>Ticket ID</th><th>Issue Type</th><th>Borough</th>
+          <th>Urgency</th><th>Assigned Dept.</th>
+          <th>Submitted</th><th>Completed</th><th>Status</th>
+          {% if role=='manager' %}<th>Action</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in complaints %}
+        <tr>
+          <td><code style="font-size:12px">{{ c['ticket_id'] }}</code></td>
+          <td>{{ c['complaint_type'] or '—' }}</td>
+          <td>{{ c['borough'] or '—' }}</td>
+          <td>
+            {% if c['priority']=='Urgent' %}<span class="badge-urgent">Urgent</span>
+            {% elif c['priority']=='Low' %}<span class="badge-low">Low</span>
+            {% else %}<span class="badge-normal">Normal</span>{% endif %}
+          </td>
+          <td style="color:var(--blue);font-weight:500;font-size:12px">
+            {{ c['department'] if c['department'] else 'AI Auto-Assigning...' }}
+          </td>
+          <td style="font-size:12px;color:#94a3b8">{{ c['submitted_at'][:10] if c['submitted_at'] else '—' }}</td>
+          <td style="font-size:12px;color:{% if c['completed_at'] %}var(--green){% else %}#94a3b8{% endif %};font-weight:{% if c['completed_at'] %}600{% else %}400{% endif %}" id="completed-{{ c['ticket_id'] }}">
+            {% if c['completed_at'] %}
+              ✅ {{ c['completed_at'][:10] }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge-{{ 'progress' if c['status']=='In Progress' else c['status']|lower }}"
+                  id="badge-{{ c['ticket_id'] }}">
+              {% if c['status'] == 'Closed' %}✅ Completed{% else %}{{ c['status'] }}{% endif %}
+            </span>
+          </td>
+          {% if role=='manager' %}
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              {% for s in ['Open','In Progress','Closed'] %}
+              <button class="btn btn-sm btn-outline-secondary"
+                      onclick="updateStatus('{{ c['ticket_id'] }}','{{ s }}')">
+                {{ s }}
+              </button>
+              {% endfor %}
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="fa-solid fa-inbox fa-2x mb-3 d-block"></i>
+    No complaints found.
+    <a href="{{ url_for('report') }}">Report one now →</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function updateStatus(ticketId, newStatus) {
+  fetch('/admin/update_status', {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify({ ticket_id: ticketId, status: newStatus })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.success) { alert('Error: ' + data.error); return; }
+
+    // Update status badge live
+    const badge = document.getElementById('badge-' + ticketId);
+    if (badge) {
+      badge.className   = newStatus === 'In Progress' ? 'badge-progress'
+                        : newStatus === 'Closed'      ? 'badge-closed'
+                        : 'badge-open';
+      badge.textContent = newStatus === 'Closed' ? '✅ Completed' : newStatus;
+    }
+
+    // Update completed column live
+    const comp = document.getElementById('completed-' + ticketId);
+    if (comp) {
+      if (newStatus === 'Closed' && data.completed_at) {
+        comp.style.color      = 'var(--green, #16a34a)';
+        comp.style.fontWeight = '600';
+        comp.innerHTML        = '✅ ' + data.completed_at.slice(0, 10);
+      } else {
+        comp.style.color      = '#94a3b8';
+        comp.style.fontWeight = '400';
+        comp.innerHTML        = '—';
+      }
+    }
+  })
+  .catch(err => alert('Request failed: ' + err));
+}
+</script>
+{% endblock %}

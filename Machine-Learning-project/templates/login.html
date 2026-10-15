@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Login{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-3">
+  <div class="col-md-5">
+    <div class="panel">
+      <div class="text-center mb-4">
+        <div style="font-size:40px;color:var(--green)"><i class="fa-solid fa-city"></i></div>
+        <h3 class="mt-2">Sign In to CivicFix</h3>
+        <p class="text-muted">Better City, Better Life</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('login') }}" id="loginForm" novalidate>
+
+        <div class="mb-3">
+          <label class="cf-label">Role <span class="text-danger">*</span></label>
+          <div class="d-flex gap-3">
+            <label style="flex:1;border:2px solid #e2e8f0;border-radius:9px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px">
+              <input type="radio" name="role" value="user" checked> <span>👤 User / Citizen</span>
+            </label>
+            <label style="flex:1;border:2px solid #e2e8f0;border-radius:9px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px">
+              <input type="radio" name="role" value="manager"> <span>🛠️ Manager</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Username <span class="text-danger">*</span></label>
+          <input name="username" id="username" type="text" class="cf-input"
+                 placeholder="Enter username" oninput="clearFErr('err-username',this)">
+          <div class="invalid-hint" id="err-username">Username is required.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="cf-label">Password <span class="text-danger">*</span></label>
+          <input name="password" id="password" type="password" class="cf-input"
+                 placeholder="••••••••" oninput="clearFErr('err-password',this)">
+          <div class="invalid-hint" id="err-password">Password is required.</div>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 py-2"
+                onclick="return validateLogin()">Sign In</button>
+      </form>
+
+      <hr class="my-3">
+      <div class="text-center text-muted" style="font-size:13px">
+        Don't have an account? <a href="{{ url_for('register') }}">Register here</a>
+      </div>
+      <div class="mt-3 p-3 rounded" style="background:#f8fafc;font-size:12.5px">
+        <strong>Demo accounts:</strong><br>
+        🛠️ Manager: <code>manager / manager123</code><br>
+        👤 User: <code>user / user123</code>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.invalid-hint { color:#dc2626;font-size:12.5px;margin-top:5px;display:none; }
+.invalid-hint.show { display:block; }
+.cf-input.error { border-color:#dc2626 !important; }
+</style>
+<script>
+function clearFErr(id, el) {
+  document.getElementById(id).classList.remove('show');
+  el.classList.remove('error');
+}
+function validateLogin() {
+  let valid = true;
+  const u = document.getElementById('username');
+  const p = document.getElementById('password');
+  if (!u.value.trim()) { document.getElementById('err-username').classList.add('show'); u.classList.add('error'); valid=false; }
+  if (!p.value.trim()) { document.getElementById('err-password').classList.add('show'); p.classList.add('error'); valid=false; }
+  return valid;
+}
+</script>
+{% endblock %}

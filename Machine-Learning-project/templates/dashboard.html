@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p>CivicFix — NYC 311 Complaint Analytics Overview</p>
+  </div>
+  <a href="{{ url_for('dataset') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="fa-solid fa-upload me-1"></i>Load Dataset
+  </a>
+</div>
+
+<!-- ── DB KPI CARDS ──────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-comments"></i></div>
+      <div><div class="stat-label">Total (DB)</div><div class="stat-value">{{ total }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+      <div><div class="stat-label">Closed</div><div class="stat-value">{{ closed }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-spinner"></i></div>
+      <div><div class="stat-label">In Progress</div><div class="stat-value">{{ inprog }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+      <div><div class="stat-label">Open</div><div class="stat-value">{{ open_c }}</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DATASET BANNER ─────────────────────────────────────── -->
+<div class="ds-banner mb-4">
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;font-weight:700;
+              text-transform:uppercase;letter-spacing:.08em">
+    <i class="fa-solid fa-database me-2" style="color:#4ade80"></i>
+    Dataset — erm2-nwe9.csv
+    <a href="{{ url_for('dataset') }}"
+       style="margin-left:12px;font-size:11px;color:#60a5fa;font-weight:600;text-decoration:none">
+      <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Explore
+    </a>
+  </div>
+  <div class="d-flex gap-5 flex-wrap">
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#4ade80;line-height:1">{{ "{:,}".format(ds_total|default(0)|int) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Total Records</div>
+    </div>
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#e2e8f0;line-height:1">{{ ds_cols|default(0) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Columns</div>
+    </div>
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#60a5fa;line-height:1">{{ "{:,}".format(ds_closed|default(0)|int) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Closed</div>
+    </div>
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#fb923c;line-height:1">{{ "{:,}".format(ds_inprog|default(0)|int) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">In Progress</div>
+    </div>
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#facc15;line-height:1">{{ "{:,}".format(ds_open|default(0)|int) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Open</div>
+    </div>
+    <div>
+      <div style="font-size:30px;font-weight:800;color:#f87171;line-height:1">{{ ds_missing|default(0) }}</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Cols w/ Nulls</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CHARTS ROW 1: Status ───────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-md-5">
+    <div class="panel h-100">
+      <div class="panel-title">
+        <i class="fa-solid fa-chart-pie" style="color:var(--green)"></i>Dataset Status Distribution (%)
+      </div>
+      <div style="height:240px;display:flex;align-items:center;justify-content:center">
+        <canvas id="statusDoughnut"></canvas>
+      </div>
+      <div class="d-flex justify-content-center gap-4 mt-3 flex-wrap">
+        {% for lbl, clr in [('Closed','#16a34a'),('In Progress','#2563eb'),('Open','#f97316')] %}
+        <div class="d-flex align-items-center gap-2" style="font-size:12.5px;font-weight:500">
+          <div style="width:12px;height:12px;border-radius:3px;background:{{ clr }}"></div>
+          <span>{{ lbl }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="panel h-100">
+      <div class="panel-title">
+        <i class="fa-solid fa-chart-bar" style="color:var(--blue)"></i>DB Complaints by Status
+      </div>
+      <div style="height:260px">
+        <canvas id="statusBar"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CHARTS ROW 2: Complaint Types + Borough ───────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-md-7">
+    <div class="panel h-100">
+      <div class="panel-title">
+        <i class="fa-solid fa-tags" style="color:var(--orange)"></i>Top 10 Complaint Types (Dataset)
+      </div>
+      <div style="height:280px">
+        <canvas id="topTypesChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="panel h-100">
+      <div class="panel-title">
+        <i class="fa-solid fa-map-location" style="color:var(--purple)"></i>Borough Distribution (Dataset)
+      </div>
+      <div style="height:280px">
+        <canvas id="boroughChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AGENCY TABLE ───────────────────────────────────────── -->
+{% if agency_dist %}
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-building" style="color:var(--blue)"></i>Top Agencies (Dataset)
+  </div>
+  <div class="row g-2">
+    {% for row in agency_dist[:10] %}
+    {% set ag  = row.get('agency', '?') %}
+    {% set cnt = row.get('count', 0) %}
+    {% set max_cnt = agency_dist[0].get('count', 1) %}
+    {% set pct = (cnt / max_cnt * 100) | round(0) | int %}
+    <div class="col-md-6">
+      <div class="d-flex align-items-center gap-3" style="padding:6px 0">
+        <span style="font-size:13px;font-weight:600;color:var(--navy);min-width:60px">{{ ag }}</span>
+        <div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:var(--blue);border-radius:4px"></div>
+        </div>
+        <span style="font-size:12px;color:var(--gray);min-width:50px;text-align:right">{{ "{:,}".format(cnt) }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── RECENT COMPLAINTS ──────────────────────────────────── -->
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="panel-title mb-0">
+      <i class="fa-solid fa-clock-rotate-left" style="color:var(--gray)"></i>Recent Complaints
+    </div>
+    <a href="{{ url_for('issues') }}" class="btn btn-sm btn-outline-secondary">View All →</a>
+  </div>
+  {% if recent %}
+  <div class="table-responsive">
+    <table class="cf-table">
+      <thead>
+        <tr><th>Ticket</th><th>Issue Type</th><th>Borough</th><th>Department</th><th>Priority</th><th>Status</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+      {% for c in recent %}
+      <tr>
+        <td><code style="font-size:11px;color:var(--blue);font-weight:600">{{ c['ticket_id'] }}</code></td>
+        <td style="font-weight:500">{{ c['complaint_type'] or '—' }}</td>
+        <td>{{ c['borough'] or '—' }}</td>
+        <td style="font-size:12px;color:var(--blue)">{{ c['department'] or 'Assigning...' }}</td>
+        <td>
+          {% if c['priority']=='Urgent' %}<span class="badge-urgent">🔴 Urgent</span>
+          {% elif c['priority']=='Low' %}<span class="badge-low">🟢 Low</span>
+          {% else %}<span class="badge-normal">🟡 Normal</span>{% endif %}
+        </td>
+        <td>
+          {% if c['status']=='Closed' %}<span class="badge-closed">✅ Closed</span>
+          {% elif c['status']=='In Progress' %}<span class="badge-progress">🔄 In Progress</span>
+          {% else %}<span class="badge-open">📋 Open</span>{% endif %}
+        </td>
+        <td style="font-size:11.5px;color:var(--text-s)">{{ c['submitted_at'][:10] if c['submitted_at'] else '—' }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5" style="color:var(--text-s)">
+    <i class="fa-solid fa-inbox fa-2x mb-3 d-block"></i>
+    No complaints yet. <a href="{{ url_for('report') }}">Report one now →</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── Data from Flask ────────────────────────────────────────
+const dsLabels = {{ ds_status_labels | tojson }};
+const dsValues = {{ ds_status_values | tojson }};
+const dbLabels = {{ db_status_labels | tojson }};
+const dbValues = {{ db_status_values | tojson }};
+const topLabels = {{ top_labels | tojson }};
+const topValues = {{ top_values | tojson }};
+const borLabels = {{ bor_labels | tojson }};
+const borValues = {{ bor_values | tojson }};
+
+// ── Doughnut: Dataset Status % ─────────────────────────────
+new Chart(document.getElementById('statusDoughnut'), {
+  type: 'doughnut',
+  data: {
+    labels: dsLabels,
+    datasets: [{
+      data: dsValues,
+      backgroundColor: ['#16a34a','#2563eb','#f97316'],
+      borderWidth: 3, borderColor: '#fff', hoverOffset: 8
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => {
+            const t = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            return ' '+ctx.label+': '+ctx.raw.toLocaleString()+' ('+(t>0?((ctx.raw/t)*100).toFixed(1):0)+'%)';
+          }
+        }
+      }
+    }
+  }
+});
+
+// ── Bar: DB Status ─────────────────────────────────────────
+new Chart(document.getElementById('statusBar'), {
+  type: 'bar',
+  data: {
+    labels: dbLabels,
+    datasets: [{
+      data: dbValues,
+      backgroundColor: ['#f97316','#2563eb','#16a34a'],
+      borderRadius: 8, borderSkipped: false
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 14, weight: '600' } } }
+    }
+  }
+});
+
+// ── Bar: Top Complaint Types ────────────────────────────────
+if (topLabels.length > 0) {
+  new Chart(document.getElementById('topTypesChart'), {
+    type: 'bar',
+    data: {
+      labels: topLabels,
+      datasets: [{
+        data: topValues,
+        backgroundColor: '#2563eb',
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── Bar: Borough Distribution ──────────────────────────────
+if (borLabels.length > 0) {
+  new Chart(document.getElementById('boroughChart'), {
+    type: 'bar',
+    data: {
+      labels: borLabels,
+      datasets: [{
+        data: borValues,
+        backgroundColor: ['#16a34a','#2563eb','#f97316','#7c3aed','#0891b2','#be185d'],
+        borderRadius: 8, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

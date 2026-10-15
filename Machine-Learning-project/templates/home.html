@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Home{% endblock %}
+
+{% block content %}
+
+<!-- ── HERO ──────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>CivicFix<br><span>NYC 311 ML Analytics</span></h1>
+  <p>
+    Machine learning platform for predicting and analysing civic complaint
+    resolution in New York City — trained on 50,000 real 311 service requests.
+  </p>
+  <div class="hero-btns">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-success btn-lg px-4">
+      <i class="fa-solid fa-gauge-high me-2"></i>Dashboard
+    </a>
+    <a href="{{ url_for('visualization') }}" class="btn btn-outline-light btn-lg px-4">
+      <i class="fa-solid fa-chart-bar me-2"></i>Visualizations
+    </a>
+    <a href="{{ url_for('predict') }}" class="btn btn-outline-light btn-lg px-4">
+      <i class="fa-solid fa-wand-magic-sparkles me-2"></i>Predict
+    </a>
+  </div>
+</div>
+
+<!-- ── DATASET KPI CARDS (real values from erm2-nwe9.csv) ── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-table-list"></i></div>
+      <div>
+        <div class="stat-label">Total Records</div>
+        <div class="stat-value">{{ "{:,}".format(ds_total|default(0)|int) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fa-solid fa-circle-check"></i></div>
+      <div>
+        <div class="stat-label">Closed</div>
+        <div class="stat-value">{{ "{:,}".format(ds_closed|default(0)|int) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fa-solid fa-spinner"></i></div>
+      <div>
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value">{{ "{:,}".format(ds_inprog|default(0)|int) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="fa-solid fa-clock"></i></div>
+      <div>
+        <div class="stat-label">Open</div>
+        <div class="stat-value">{{ "{:,}".format(ds_open|default(0)|int) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fa-solid fa-tags"></i></div>
+      <div>
+        <div class="stat-label">Issue Types</div>
+        <div class="stat-value">{{ ds_types|default(0) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card">
+      <div class="stat-icon orange"><i class="fa-solid fa-building"></i></div>
+      <div>
+        <div class="stat-label">Agencies</div>
+        <div class="stat-value">{{ ds_agencies|default(0) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DATASET INFO BANNER ─────────────────────────────────── -->
+<div class="ds-banner mb-4">
+  <div style="font-size:11px;color:#94a3b8;margin-bottom:10px;font-weight:700;
+              text-transform:uppercase;letter-spacing:.08em">
+    <i class="fa-solid fa-database me-2" style="color:#4ade80"></i>
+    Dataset — erm2-nwe9.csv (NYC 311 Service Requests)
+  </div>
+  <div class="d-flex gap-5 flex-wrap">
+    <div>
+      <div style="font-size:28px;font-weight:800;color:#4ade80;line-height:1">
+        {{ "{:,}".format(ds_total|default(0)|int) }}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Total Records</div>
+    </div>
+    <div>
+      <div style="font-size:28px;font-weight:800;color:#e2e8f0;line-height:1">
+        {{ ds_cols|default(0) }}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Columns</div>
+    </div>
+    <div>
+      <div style="font-size:28px;font-weight:800;color:#a78bfa;line-height:1">
+        {{ ds_types|default(0) }}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Complaint Types</div>
+    </div>
+    <div>
+      <div style="font-size:28px;font-weight:800;color:#fdba74;line-height:1">
+        {{ ds_boroughs|default(0) }}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">NYC Boroughs</div>
+    </div>
+    <div>
+      <div style="font-size:28px;font-weight:800;color:#67e8f9;line-height:1">
+        {{ ds_agencies|default(0) }}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:3px">Agencies</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATUS BREAKDOWN ───────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-chart-pie me-2" style="color:var(--green)"></i>
+    Dataset Status Breakdown
+  </div>
+  {% set total_ds = (ds_closed|default(0)|int) + (ds_inprog|default(0)|int) + (ds_open|default(0)|int) %}
+  {% if total_ds > 0 %}
+  {% for label, count, color in [
+      ('Closed',      ds_closed|default(0)|int, '#16a34a'),
+      ('In Progress', ds_inprog|default(0)|int, '#2563eb'),
+      ('Open',        ds_open|default(0)|int,   '#f97316'),
+  ] %}
+  {% set pct = (count / total_ds * 100) | round(1) %}
+  <div class="mb-3">
+    <div class="d-flex justify-content-between mb-1" style="font-size:13px">
+      <span style="font-weight:600;color:var(--navy)">{{ label }}</span>
+      <span style="color:var(--gray)">{{ "{:,}".format(count) }}
+        <span style="font-weight:700;color:{{ color }}"> ({{ pct }}%)</span>
+      </span>
+    </div>
+    <div style="height:10px;background:var(--gray-l);border-radius:6px;overflow:hidden">
+      <div style="height:100%;width:{{ pct }}%;background:{{ color }};border-radius:6px;
+                  transition:width .5s ease"></div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="color:var(--text-s);font-size:13px">Dataset not loaded.</div>
+  {% endif %}
+</div>
+
+<!-- ── QUICK NAV ──────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  {% for icon, color, label, desc, url in [
+    ('fa-database',            'blue',   'Dataset',       'Explore 50K NYC 311 records',         url_for('dataset')),
+    ('fa-gear',                'orange', 'Preprocessing', '9-step ML preprocessing pipeline',    url_for('preprocessing')),
+    ('fa-chart-bar',           'purple', 'Visualizations','EDA, correlation & model charts',     url_for('visualization')),
+    ('fa-robot',               'green',  'ML Models',     'LR, DT, RF, GBM, AdaBoost, Clustering',url_for('models_page')),
+    ('fa-wand-magic-sparkles', 'blue',   'Prediction',    'Predict complaint status with AI',    url_for('predict')),
+    ('fa-file-lines',          'orange', 'Reports',       'Model metrics and result charts',     url_for('reports')),
+  ] %}
+  <div class="col-6 col-md-4">
+    <a href="{{ url }}" class="text-decoration-none">
+      <div class="panel"
+           style="cursor:pointer;transition:all .2s;border:1.5px solid transparent"
+           onmouseover="this.style.borderColor='var(--{{ color }},#2563eb)';this.style.transform='translateY(-2px)'"
+           onmouseout="this.style.borderColor='transparent';this.style.transform='none'">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon {{ color }}"
+               style="width:42px;height:42px;font-size:16px;flex-shrink:0">
+            <i class="fa-solid {{ icon }}"></i>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--navy)">{{ label }}</div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">{{ desc }}</div>
+          </div>
+          <i class="fa-solid fa-arrow-right ms-auto" style="color:var(--border);font-size:12px"></i>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── RECENT COMPLAINTS ──────────────────────────────────── -->
+{% if recent %}
+<div class="panel">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="panel-title mb-0">
+      <i class="fa-solid fa-clock-rotate-left me-2" style="color:var(--gray)"></i>
+      Recent Submitted Complaints
+    </div>
+    <a href="{{ url_for('issues') }}" class="btn btn-sm btn-outline-secondary">View All →</a>
+  </div>
+  <div class="table-responsive">
+    <table class="cf-table">
+      <thead>
+        <tr>
+          <th>Ticket</th><th>Type</th><th>Borough</th>
+          <th>Priority</th><th>Status</th><th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in recent %}
+      <tr>
+        <td><code style="font-size:11px;color:var(--blue);font-weight:600">
+          {{ c['ticket_id'] }}</code></td>
+        <td style="font-weight:500">{{ c['complaint_type'] or '—' }}</td>
+        <td>{{ c['borough'] or '—' }}</td>
+        <td>
+          {% if c['priority']=='Urgent' %}<span class="badge-urgent">🔴 Urgent</span>
+          {% elif c['priority']=='Low'  %}<span class="badge-low">🟢 Low</span>
+          {% else %}<span class="badge-normal">🟡 Normal</span>{% endif %}
+        </td>
+        <td>
+          {% if c['status']=='Closed'       %}<span class="badge-closed">✅ Closed</span>
+          {% elif c['status']=='In Progress'%}<span class="badge-progress">🔄 In Progress</span>
+          {% else %}<span class="badge-open">📋 Open</span>{% endif %}
+        </td>
+        <td style="font-size:11.5px;color:var(--text-s)">
+          {{ c['submitted_at'][:10] if c['submitted_at'] else '—' }}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

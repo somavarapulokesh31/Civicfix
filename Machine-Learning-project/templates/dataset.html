@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Dataset Explorer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-database me-2" style="color:var(--green)"></i>Dataset Explorer</h1>
+    <p>Load, switch and explore datasets for CivicFix</p>
+  </div>
+</div>
+
+<!-- ── DATASET LOAD / SELECT ──────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-folder-open me-2" style="color:var(--blue)"></i>Load Dataset
+  </div>
+  <div class="row g-3 align-items-end">
+
+    <!-- Select existing -->
+    <div class="col-md-5">
+      <label class="cf-label">Select Available Dataset</label>
+      <form method="GET" action="{{ url_for('dataset') }}" id="selectForm">
+        <div class="d-flex gap-2">
+          <select name="selected" class="cf-select" onchange="this.form.submit()">
+            {% for ds in all_datasets %}
+            <option value="{{ ds }}" {{ 'selected' if ds == selected }}>{{ ds }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </form>
+    </div>
+
+    <!-- Upload new CSV -->
+    <div class="col-md-7">
+      <label class="cf-label">Upload New Dataset (CSV)</label>
+      <form method="POST" action="{{ url_for('dataset') }}" enctype="multipart/form-data">
+        <div class="d-flex gap-2">
+          <input type="file" name="dataset_file" accept=".csv"
+                 class="form-control" style="font-size:13px" required>
+          <button type="submit" class="btn btn-success px-4" style="white-space:nowrap">
+            <i class="fa-solid fa-upload me-1"></i>Load
+          </button>
+        </div>
+        <div class="form-text mt-1">Upload any CSV file — it will be added to the selector above</div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% if stats.get('error') %}
+<div class="alert alert-danger">
+  <i class="fa-solid fa-triangle-exclamation me-2"></i>Error loading dataset: {{ stats.error }}
+</div>
+{% else %}
+
+<!-- ── KPI CARDS ──────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon blue" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-table-list"></i></div>
+      <div><div class="stat-label">Total Records</div><div class="stat-value" style="font-size:20px">{{ '{:,}'.format(stats.total_rows) }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon green" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-columns"></i></div>
+      <div><div class="stat-label">Columns</div><div class="stat-value" style="font-size:20px">{{ stats.total_cols }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon orange" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-tags"></i></div>
+      <div><div class="stat-label">Num Columns</div><div class="stat-value" style="font-size:20px">{{ stats.num_cols|length }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon blue" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-font"></i></div>
+      <div><div class="stat-label">Cat Columns</div><div class="stat-value" style="font-size:20px">{{ stats.cat_cols|length }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon orange" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-circle-xmark"></i></div>
+      <div><div class="stat-label">Cols w/ Nulls</div><div class="stat-value" style="font-size:20px">{{ stats.missing_info|length }}</div></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-2">
+    <div class="stat-card" style="padding:14px">
+      <div class="stat-icon green" style="width:38px;height:38px;font-size:15px"><i class="fa-solid fa-copy"></i></div>
+      <div><div class="stat-label">File</div><div class="stat-value" style="font-size:11px;word-break:break-all;margin-top:4px">{{ stats.filename }}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- Status Distribution — only for CivicFix dataset -->
+  {% if stats.status_dist %}
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title"><i class="fa-solid fa-chart-pie me-2" style="color:var(--green)"></i>Status Distribution</div>
+      {% for s, c in stats.status_dist.items() %}
+      {% set pct = (c / stats.total_rows * 100) | round(1) %}
+      {% set color = '#16a34a' if s=='Closed' else '#2563eb' if s=='In Progress' else '#f97316' %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1" style="font-size:13px">
+          <span style="font-weight:500">{{ s }}</span>
+          <span style="color:#64748b">{{ '{:,}'.format(c) }} ({{ pct }}%)</span>
+        </div>
+        <div style="height:9px;background:#f1f5f9;border-radius:6px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:{{ color }};border-radius:6px"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Top Complaint Types — only for CivicFix dataset -->
+  {% if stats.top10_complaint %}
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title"><i class="fa-solid fa-list-ol me-2" style="color:var(--blue)"></i>Top 10 Complaint Types</div>
+      <div class="table-responsive">
+        <table class="cf-table">
+          <thead><tr><th>#</th><th>Type</th><th>Count</th></tr></thead>
+          <tbody>
+          {% for row in stats.top10_complaint %}
+          <tr>
+            <td style="color:#94a3b8;width:30px">{{ loop.index }}</td>
+            <td>{{ row.get('type', row.get('complaint_type','—')) }}</td>
+            <td><strong>{{ '{:,}'.format(row.count) }}</strong></td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Missing Values -->
+  {% if stats.missing_info %}
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title"><i class="fa-solid fa-circle-xmark me-2" style="color:var(--orange)"></i>Missing Values ({{ stats.missing_info|length }} columns affected)</div>
+      <div class="table-responsive" style="max-height:260px;overflow-y:auto">
+        <table class="cf-table">
+          <thead><tr><th>Column</th><th>Missing</th><th>%</th></tr></thead>
+          <tbody>
+          {% for m in stats.missing_info[:15] %}
+          <tr>
+            <td style="font-family:monospace;font-size:12px">{{ m.column }}</td>
+            <td>{{ '{:,}'.format(m.missing) }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="height:6px;width:{{ [m.pct, 100]|min }}px;background:{% if m.pct > 60 %}#ef4444{% elif m.pct > 20 %}#f97316{% else %}#f59e0b{% endif %};border-radius:3px"></div>
+                <span style="font-size:12px">{{ m.pct }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Borough Distribution -->
+  {% if stats.borough_dist %}
+  <div class="col-md-6">
+    <div class="panel">
+      <div class="panel-title"><i class="fa-solid fa-map-location me-2" style="color:var(--blue)"></i>Borough Distribution</div>
+      {% set max_b = stats.borough_dist[0].count if stats.borough_dist else 1 %}
+      {% for row in stats.borough_dist %}
+      {% set pct = (row.count / max_b * 100) | round(0) | int %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between mb-1" style="font-size:13px">
+          <span>{{ row.get('borough','—') }}</span>
+          <span style="color:#64748b">{{ '{:,}'.format(row.count) }}</span>
+        </div>
+        <div style="height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:var(--blue);border-radius:4px"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Column Info Table — works for ANY CSV -->
+  <div class="col-12">
+    <div class="panel">
+      <div class="panel-title">
+        <i class="fa-solid fa-list me-2" style="color:var(--blue)"></i>
+        Column Details ({{ stats.total_cols }} columns)
+      </div>
+      <div class="table-responsive" style="max-height:340px;overflow-y:auto">
+        <table class="cf-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Column Name</th>
+              <th>Data Type</th>
+              <th>Unique Values</th>
+              <th>Missing</th>
+              <th>Missing %</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in stats.col_info %}
+          <tr>
+            <td style="color:#94a3b8;font-size:12px">{{ loop.index }}</td>
+            <td style="font-family:monospace;font-size:12px;font-weight:500">{{ c.name }}</td>
+            <td>
+              <span style="background:{% if 'int' in c.dtype or 'float' in c.dtype %}#dbeafe{% else %}#f3e8ff{% endif %};
+                           color:{% if 'int' in c.dtype or 'float' in c.dtype %}#1d4ed8{% else %}#7c3aed{% endif %};
+                           border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">
+                {{ c.dtype }}
+              </span>
+            </td>
+            <td>{{ '{:,}'.format(c.unique) }}</td>
+            <td>{{ '{:,}'.format(c.missing) if c.missing > 0 else '—' }}</td>
+            <td>
+              {% if c.pct_missing > 0 %}
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="height:5px;width:{{ [c.pct_missing, 100]|min|int }}px;max-width:80px;
+                            background:{% if c.pct_missing > 60 %}#ef4444{% elif c.pct_missing > 20 %}#f97316{% else %}#f59e0b{% endif %};
+                            border-radius:3px"></div>
+                <span style="font-size:11px;color:#64748b">{{ c.pct_missing }}%</span>
+              </div>
+              {% else %}
+              <span style="color:#16a34a;font-size:12px">✓ Complete</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- All Columns badges -->
+  <div class="col-12">
+    <div class="panel">
+      <div class="panel-title">
+        <i class="fa-solid fa-table-columns me-2" style="color:var(--gray)"></i>
+        All Column Names
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for col in stats.columns %}
+        <span style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;
+                     padding:4px 10px;font-size:12px;font-family:monospace;color:#334155">
+          {{ col }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+{% endblock %}

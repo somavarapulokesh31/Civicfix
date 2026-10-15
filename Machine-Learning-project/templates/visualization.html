@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Visualizations{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-chart-bar me-2" style="color:var(--green)"></i>Visualizations</h1>
+    <p>{{ total }} charts — click any section to expand and view charts with technique explanations</p>
+  </div>
+</div>
+
+{% for s in sections %}
+{% if s.imgs %}
+<!-- ══ SECTION CARD ════════════════════════════════════════ -->
+<div class="panel mb-3" style="padding:0;overflow:hidden">
+
+  <!-- ── HEADER (click to toggle) ──────────────────────── -->
+  <div onclick="toggleSection('{{ s.id }}')"
+       style="padding:18px 22px;cursor:pointer;display:flex;align-items:center;
+              gap:14px;background:var(--white);user-select:none"
+       id="hdr-{{ s.id }}">
+    <!-- Icon -->
+    <div style="width:44px;height:44px;border-radius:11px;flex-shrink:0;display:flex;
+                align-items:center;justify-content:center;font-size:18px;
+                background:{{ s.color }}18;color:{{ s.color }}">
+      <i class="fa-solid {{ s.icon }}"></i>
+    </div>
+    <!-- Title + desc -->
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:700;color:var(--navy)">{{ s.title }}</div>
+      <div style="font-size:12.5px;color:var(--gray);margin-top:2px">{{ s.desc }}</div>
+    </div>
+    <!-- Count badge -->
+    <span style="background:{{ s.color }};color:#fff;border-radius:20px;
+                 padding:4px 13px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">
+      {{ s.imgs|length }} chart{{ 's' if s.imgs|length != 1 else '' }}
+    </span>
+    <!-- Chevron -->
+    <i class="fa-solid fa-chevron-down" id="chv-{{ s.id }}"
+       style="color:var(--gray);transition:transform .25s;flex-shrink:0;font-size:13px"></i>
+  </div>
+
+  <!-- ── TECHNIQUE DESCRIPTION ──────────────────────────── -->
+  <div id="body-{{ s.id }}" style="display:none">
+    <!-- Info box -->
+    <div style="padding:16px 22px;background:{{ s.color }}08;border-top:1px solid {{ s.color }}20;
+                border-bottom:1px solid var(--border)">
+      <div style="font-size:13px;font-weight:700;color:{{ s.color }};margin-bottom:8px">
+        <i class="fa-solid fa-circle-info me-2"></i>About This Technique
+      </div>
+      <p style="font-size:13px;color:var(--text-m);margin:0;line-height:1.7">{{ s.about }}</p>
+      {% if s.keypoints %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        {% for kp in s.keypoints %}
+        <span style="background:{{ s.color }}18;color:{{ s.color }};border-radius:6px;
+                     padding:4px 12px;font-size:12px;font-weight:600">
+          {{ kp }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── CHARTS GRID ────────────────────────────────────── -->
+    <div style="padding:20px 22px">
+      <div class="row g-4">
+        {% for filename, title, route_name in s.imgs %}
+        <div class="col-md-6">
+          <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)">
+            <!-- Chart label -->
+            <div style="padding:11px 16px;background:var(--gray-l);border-bottom:1px solid var(--border);
+                        display:flex;align-items:center;gap:8px">
+              <i class="fa-solid {{ s.icon }}" style="color:{{ s.color }};font-size:12px"></i>
+              <span style="font-size:13px;font-weight:600;color:var(--navy);flex:1">{{ title }}</span>
+              <a href="{{ url_for(route_name, filename=filename) }}"
+                 target="_blank"
+                 style="color:var(--text-s);font-size:12px;text-decoration:none"
+                 title="Open full size">
+                <i class="fa-solid fa-expand"></i>
+              </a>
+            </div>
+            <!-- Image -->
+            <div style="padding:14px;background:var(--white)">
+              <img src="{{ url_for(route_name, filename=filename) }}"
+                   alt="{{ title }}"
+                   class="img-fluid rounded"
+                   style="width:100%;max-height:340px;object-fit:contain;display:block"
+                   loading="lazy"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div style="display:none;height:120px;align-items:center;justify-content:center;
+                          color:var(--text-s);font-size:13px;flex-direction:column;gap:8px">
+                <i class="fa-solid fa-image-slash fa-2x"></i>
+                Chart not available
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endif %}
+{% endfor %}
+
+{% if total == 0 %}
+<div class="panel text-center py-5" style="color:var(--text-s)">
+  <i class="fa-solid fa-chart-bar fa-3x mb-3 d-block"></i>
+  <h5 style="color:var(--navy)">No Charts Generated Yet</h5>
+  <p style="font-size:13px;max-width:400px;margin:0 auto 16px">Run these scripts first:</p>
+  <div class="d-flex flex-column gap-2 align-items-center">
+    {% for cmd in ['python src/EDA_analysis.py',
+                   'python src/Correlation_Matrix_heatmap_boxplots_M1.py',
+                   'python src/clean_embedding_encode_M2.py',
+                   'python src/run_all_models.py',
+                   'python src/run_clustering.py'] %}
+    <code style="background:var(--gray-l);padding:6px 16px;border-radius:7px;font-size:13px">{{ cmd }}</code>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleSection(id) {
+  const body = document.getElementById('body-' + id);
+  const chv  = document.getElementById('chv-'  + id);
+  const hdr  = document.getElementById('hdr-'  + id);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chv.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+  hdr.style.borderBottom = open ? 'none' : '1px solid var(--border)';
+}
+
+// Auto-open first section
+document.addEventListener('DOMContentLoaded', function() {
+  const firstId = '{{ sections[0].id if sections else "" }}';
+  if (firstId) toggleSection(firstId);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — AI Prediction{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>AI Status Prediction</h1><p>Enter complaint details — the ML model predicts the likely status</p></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="panel">
+      <form method="POST" action="{{ url_for('predict') }}" id="predictForm" novalidate>
+
+        <div class="mb-3">
+          <label class="cf-label">Issue Type <span class="text-danger">*</span></label>
+          <select name="complaint_type" id="p-type" class="cf-select"
+                  onchange="pclear('err-pt',this)">
+            <option value="">— Select issue type —</option>
+            {% for t in ['Illegal Parking','Noise - Residential','Noise - Street/Sidewalk',
+                         'Blocked Driveway','UNSANITARY CONDITION','Street Condition',
+                         'Water Maintenance','HEAT/HOT WATER','Derelict Vehicle','Graffiti',
+                         'Street Light Condition','Pothole','Sidewalk Condition','Other'] %}
+            <option {{ 'selected' if result and result.input.complaint_type==t }}>{{t}}</option>
+            {% endfor %}
+          </select>
+          <div class="invalid-hint" id="err-pt">Please select an issue type.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Borough <span class="text-danger">*</span></label>
+          <select name="borough" id="p-borough" class="cf-select"
+                  onchange="pclear('err-pb',this)">
+            <option value="">— Select Borough —</option>
+            {% for b in ['BROOKLYN','QUEENS','BRONX','MANHATTAN','STATEN ISLAND'] %}
+            <option {{ 'selected' if result and result.input.borough==b }}>{{b}}</option>
+            {% endfor %}
+          </select>
+          <div class="invalid-hint" id="err-pb">Please select a borough.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Agency</label>
+          <select name="agency" class="cf-select">
+            <option value="">— Select Agency (optional) —</option>
+            {% for a in ['NYPD','HPD','DSNY','DOT','DEP','DPR','DOB','DOHMH'] %}
+            <option {{ 'selected' if result and result.input.agency==a }}>{{a}}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="cf-label">Priority / Urgency</label>
+          <select name="priority" class="cf-select">
+            <option value="Normal">Normal</option>
+            <option value="Urgent">Urgent</option>
+            <option value="Low">Low</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 py-2"
+                onclick="return validatePredict()">
+          🤖 Predict Status
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    {% if result %}
+    <div class="pred-box">
+      <div style="font-size:15px;font-weight:600;color:var(--green);margin-bottom:4px">✓ AI Prediction Complete</div>
+      <p style="font-size:13px;color:#374151;margin-bottom:2px">Trained on <strong>50,000</strong> NYC 311 records from <code>erm2-nwe9.csv</code></p>
+
+      <div class="pred-grid">
+        <div class="pred-item">
+          <div class="pred-label">Predicted Status</div>
+          <div class="pred-val">
+            {% if result.status=='Closed' %}<span class="badge-closed">Closed</span>
+            {% elif result.status=='In Progress' %}<span class="badge-progress">In Progress</span>
+            {% else %}<span class="badge-open">Open</span>{% endif %}
+          </div>
+          <div class="conf-bar"><div class="conf-fill" style="width:{{ result.confidence }}%"></div></div>
+          <small style="color:#94a3b8;font-size:12px">Confidence: {{ result.confidence }}%</small>
+        </div>
+        <div class="pred-item">
+          <div class="pred-label">Issue Type</div>
+          <div class="pred-val" style="font-size:13px">{{ result.input.complaint_type }}</div>
+        </div>
+        <div class="pred-item">
+          <div class="pred-label">Borough</div>
+          <div class="pred-val" style="font-size:13px">{{ result.input.borough }}</div>
+        </div>
+      </div>
+
+      <div class="mt-3 p-3 rounded" style="background:#fff;border:1px solid #e2e8f0;">
+        <strong style="font-size:13px">Explanation:</strong>
+        <p style="font-size:13px;color:#374151;margin:6px 0 0;line-height:1.6">{{ result.explanation }}</p>
+      </div>
+    </div>
+    {% else %}
+    <div class="panel text-center py-5" style="color:#94a3b8">
+      <i class="fa-solid fa-robot fa-3x mb-3 d-block"></i>
+      <h5>AI Status Prediction</h5>
+      <p style="font-size:13px">Fill in the complaint details and click<br><strong>Predict Status</strong> to see the result.</p>
+      <div class="d-flex gap-2 justify-content-center mt-3 flex-wrap">
+        <span class="badge-open">Open</span>
+        <span class="badge-progress">In Progress</span>
+        <span class="badge-closed">Closed</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.invalid-hint{color:#dc2626;font-size:12.5px;margin-top:5px;display:none}
+.invalid-hint.show{display:block}
+.cf-select.error{border-color:#dc2626!important}
+</style>
+<script>
+function pclear(id,el){document.getElementById(id).classList.remove('show');el.classList.remove('error');}
+function validatePredict(){
+  let v=true;
+  const t=document.getElementById('p-type');
+  const b=document.getElementById('p-borough');
+  if(!t.value){document.getElementById('err-pt').classList.add('show');t.classList.add('error');v=false;}
+  if(!b.value){document.getElementById('err-pb').classList.add('show');b.classList.add('error');v=false;}
+  return v;
+}
+</script>
+{% endblock %}

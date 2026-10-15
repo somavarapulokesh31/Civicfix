@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-file-lines me-2" style="color:var(--green)"></i>ML Reports</h1>
+    <p>Model evaluation results, performance metrics and comparison charts</p>
+  </div>
+</div>
+
+<!-- ── ML PIPELINE SUMMARY ──────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-microchip" style="color:var(--blue)"></i>ML Pipeline Summary
+  </div>
+  <div class="row g-3">
+    {% for label, val in [
+      ('Dataset',    'erm2-nwe9.csv — 50,000 NYC 311 records'),
+      ('Target',     'status: Open (0) | In Progress (1) | Closed (2)'),
+      ('Features',   'complaint_type, agency, borough, location_type, channel, lat, lng'),
+      ('Split',      '80% training / 20% testing — stratified'),
+      ('Encoding',   'LabelEncoder for categorical features'),
+      ('Imputation', 'SimpleImputer (median strategy) for missing values'),
+    ] %}
+    <div class="col-md-4">
+      <div style="background:var(--gray-l);border-radius:10px;padding:13px 15px">
+        <div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;font-weight:700">{{ label }}</div>
+        <div style="font-size:13px;color:var(--text)">{{ val }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if model_results %}
+
+<!-- ── BEST MODEL ────────────────────────────────────────── -->
+{% set best = model_results | sort(attribute='Accuracy', reverse=True) | first %}
+<div class="panel mb-4" style="border:2px solid var(--green);background:linear-gradient(135deg,#f0fdf4,#f8fffb)">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="stat-icon green" style="width:54px;height:54px;font-size:22px;flex-shrink:0">
+      <i class="fa-solid fa-trophy"></i>
+    </div>
+    <div class="flex-grow-1">
+      <div style="font-size:10.5px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">
+        🏆 Best Performing Model
+      </div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy)">{{ best.Model }}</div>
+      <div class="d-flex gap-4 mt-2 flex-wrap" style="font-size:13px">
+        <span>
+          <span style="color:var(--gray)">Accuracy:</span>
+          <strong style="color:var(--green);font-size:15px"> {{ best.Accuracy }}%</strong>
+        </span>
+        <span>
+          <span style="color:var(--gray)">F1-Score:</span>
+          <strong> {{ best.F1_Score }}%</strong>
+        </span>
+        <span>
+          <span style="color:var(--gray)">Precision:</span>
+          <strong> {{ best.Precision }}%</strong>
+        </span>
+        <span>
+          <span style="color:var(--gray)">Recall:</span>
+          <strong> {{ best.Recall }}%</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODEL COMPARISON TABLE ────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-table" style="color:var(--blue)"></i>Model Comparison
+  </div>
+  <div class="table-responsive">
+    <table class="cf-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Model</th>
+          <th>Accuracy</th>
+          <th>Precision</th>
+          <th>Recall</th>
+          <th>F1-Score</th>
+          <th>Accuracy Bar</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in model_results | sort(attribute='Accuracy', reverse=True) %}
+      {% set is_best = loop.index == 1 %}
+      <tr {% if is_best %}style="background:#f0fdf4;"{% endif %}>
+        <td>
+          {% if loop.index == 1 %}<span class="badge-closed">🥇 1st</span>
+          {% elif loop.index == 2 %}<span class="badge-normal">🥈 2nd</span>
+          {% elif loop.index == 3 %}<span class="badge-open">🥉 3rd</span>
+          {% else %}<span style="color:var(--text-s);font-size:13px">#{{ loop.index }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <strong {% if is_best %}style="color:var(--green)"{% endif %}>
+            {% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}
+            {{ row.Model }}
+          </strong>
+        </td>
+        <td>
+          <strong {% if is_best %}style="color:var(--green);font-size:14px"{% endif %}>
+            {{ row.Accuracy }}%
+          </strong>
+        </td>
+        <td>{{ row.Precision }}%</td>
+        <td>{{ row.Recall }}%</td>
+        <td>{{ row.F1_Score }}%</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;min-width:120px">
+            <div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:{{ row.Accuracy | float }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div>
+            </div>
+            <span style="font-size:11px;color:var(--gray);white-space:nowrap">{{ row.Accuracy }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── ACCURACY BAR CHART ────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-chart-column" style="color:var(--orange)"></i>Model Accuracy Comparison
+  </div>
+  <div style="position:relative;height:280px">
+    <canvas id="accuracyChart"></canvas>
+  </div>
+</div>
+
+{% endif %}
+
+<!-- ── MODEL RESULT CHARTS ───────────────────────────────── -->
+{% if model_images %}
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-images" style="color:var(--purple)"></i>
+    Model Result Charts
+    <span style="background:var(--purple-l);color:var(--purple);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:4px">
+      {{ model_images|length }}
+    </span>
+  </div>
+  <div class="row g-4">
+    {% for img in model_images %}
+    <div class="col-md-6">
+      <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)">
+        <!-- Chart label bar -->
+        <div style="padding:11px 16px;background:var(--gray-l);border-bottom:1px solid var(--border);
+                    display:flex;align-items:center;gap:8px">
+          <i class="fa-solid fa-chart-bar" style="color:var(--blue);font-size:12px"></i>
+          <span style="font-size:13px;font-weight:600;color:var(--navy)">
+            {{ img.replace('_',' ').replace('.png','').title() }}
+          </span>
+          <a href="{{ url_for('model_image', filename=img) }}"
+             target="_blank" download
+             style="margin-left:auto;color:var(--text-s);font-size:12px"
+             title="Open full size">
+            <i class="fa-solid fa-expand"></i>
+          </a>
+        </div>
+        <!-- Image -->
+        <div style="padding:16px;background:var(--white)">
+          <img src="{{ url_for('model_image', filename=img) }}"
+               class="img-fluid rounded"
+               alt="{{ img }}"
+               style="width:100%;max-height:320px;object-fit:contain;display:block"
+               loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <div style="display:none;padding:32px;text-align:center;color:var(--text-s);font-size:13px">
+            <i class="fa-solid fa-image-slash fa-2x mb-2 d-block"></i>Chart not available
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── NO REPORTS STATE ──────────────────────────────────── -->
+{% if not model_images and not model_results %}
+<div class="panel text-center py-5" style="color:var(--text-s)">
+  <i class="fa-solid fa-file-lines fa-3x mb-3 d-block"></i>
+  <h5 style="color:var(--navy);margin-bottom:8px">No Reports Generated Yet</h5>
+  <p style="font-size:13px;max-width:380px;margin:0 auto 20px">
+    Run the training script to generate model results, metrics and charts
+  </p>
+  <div style="background:var(--gray-l);padding:14px 22px;border-radius:10px;display:inline-block">
+    <code style="font-size:13px;color:var(--navy)">python src/run_all_models.py</code>
+  </div>
+  <div style="font-size:12px;margin-top:12px;color:var(--text-s)">
+    Results saved to <strong>outputs/model_results/</strong>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+{% if model_results %}
+<script>
+const modelNames = {{ model_results | map(attribute='Model') | list | tojson }};
+const modelAccs  = {{ model_results | map(attribute='Accuracy') | list | tojson }};
+const modelF1s   = {{ model_results | map(attribute='F1_Score') | list | tojson }};
+
+// Sort by accuracy descending for chart
+const combined = modelNames.map((n,i) => ({name:n, acc:modelAccs[i], f1:modelF1s[i]}));
+combined.sort((a,b) => b.acc - a.acc);
+
+new Chart(document.getElementById('accuracyChart'), {
+  type: 'bar',
+  data: {
+    labels: combined.map(d => d.name),
+    datasets: [
+      {
+        label: 'Accuracy (%)',
+        data: combined.map(d => d.acc),
+        backgroundColor: combined.map((_,i) => i===0 ? '#16a34a' : '#2563eb'),
+        borderRadius: 8,
+        borderSkipped: false,
+      },
+      {
+        label: 'F1-Score (%)',
+        data: combined.map(d => d.f1),
+        backgroundColor: combined.map((_,i) => i===0 ? '#4ade80' : '#93c5fd'),
+        borderRadius: 8,
+        borderSkipped: false,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { font: { size: 12 }, usePointStyle: true, pointStyleWidth: 10 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => '  ' + ctx.dataset.label + ': ' + ctx.raw + '%'
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 12, weight: '600' } } },
+      y: {
+        beginAtZero: true, max: 100,
+        grid: { color: '#f1f5f9' },
+        ticks: { font: { size: 11 }, callback: v => v + '%' }
+      }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

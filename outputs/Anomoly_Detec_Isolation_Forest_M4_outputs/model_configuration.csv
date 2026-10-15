@@ -1,0 +1,9 @@
+Parameter,Value
+Algorithm,Isolation Forest
+Number of Estimators,200
+Contamination,auto
+Max Samples,auto
+Max Features,1.0
+Bootstrap,False
+Random State,42
+Feature Scaling,StandardScaler

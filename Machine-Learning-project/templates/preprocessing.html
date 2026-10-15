@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Preprocessing — CivicFix{% endblock %}
+
+{% block content %}
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-gear me-2 text-success"></i>Data Preprocessing Pipeline</h1>
+    <p class="text-muted">Step-by-step data cleaning, encoding and feature engineering for the NYC 311 dataset.</p>
+  </div>
+  <span class="badge bg-success fs-6 px-3 py-2">
+    <i class="fa-solid fa-check-circle me-1"></i> {{ steps | length }} Steps
+  </span>
+</div>
+
+<!-- AVAILABLE DATASETS -->
+<div class="panel mb-4">
+  <div class="panel-title"><i class="fa-solid fa-database me-2 text-primary"></i>Available Datasets</div>
+  {% if datasets %}
+  <div class="row g-3">
+    {% for ds in datasets %}
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+      <div class="stat-card flex-column align-items-start p-3" style="gap:8px;">
+        <div class="d-flex align-items-center gap-2 w-100">
+          <div class="stat-icon blue" style="width:36px;height:36px;font-size:15px;border-radius:8px;">
+            <i class="fa-solid fa-file-csv"></i>
+          </div>
+          <div style="min-width:0;">
+            <div class="fw-semibold text-truncate" style="font-size:13px;" title="{{ ds }}">{{ ds }}</div>
+            <div style="font-size:11px;color:var(--gray);">CSV file</div>
+          </div>
+        </div>
+        <a href="{{ url_for('dataset', selected=ds) }}"
+           class="btn btn-sm btn-outline-primary w-100" style="font-size:12px;">
+          <i class="fa-solid fa-eye me-1"></i>View Dataset
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-muted text-center py-4">
+    <i class="fa-solid fa-folder-open fa-2x mb-2"></i>
+    <p>No CSV files found in the dataset directory.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- PREPROCESSING STEPS -->
+<div class="panel">
+  <div class="panel-title"><i class="fa-solid fa-list-ol me-2 text-success"></i>Preprocessing Steps</div>
+
+  <div class="row g-3">
+    {% for step in steps %}
+    <div class="col-12">
+      <div class="d-flex gap-3 align-items-start p-3 rounded-3 border"
+           style="background:{% if step.exists %}#f0fdf4{% else %}#fafafa{% endif %};
+                  border-color:{% if step.exists %}#bbf7d0{% else %}#e2e8f0{% endif %} !important;">
+
+        <!-- Step Number Badge -->
+        <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-3 fw-bold text-white"
+             style="width:44px;height:44px;font-size:13px;
+                    background:{% if step.exists %}var(--green){% else %}#94a3b8{% endif %};">
+          {{ step.num }}
+        </div>
+
+        <!-- Step Content -->
+        <div class="flex-grow-1" style="min-width:0;">
+          <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+            <span class="fw-semibold" style="font-size:14px;">{{ step.name }}</span>
+            {% if step.exists %}
+              <span class="badge-closed">✅ Complete</span>
+            {% else %}
+              <span style="background:#fff7ed;color:#c2410c;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600;">⏳ Pending</span>
+            {% endif %}
+          </div>
+          <p class="text-muted mb-2" style="font-size:13px;">{{ step.desc }}</p>
+          <div class="d-flex flex-wrap gap-3" style="font-size:12px;">
+            <span>
+              <i class="fa-solid fa-code text-primary me-1"></i>
+              <span class="text-muted">Script:</span>
+              <code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;font-size:12px;">{{ step.script }}</code>
+            </span>
+            <span>
+              <i class="fa-solid fa-file-export text-success me-1"></i>
+              <span class="text-muted">Output:</span>
+              <strong>{{ step.output }}</strong>
+              {% if step.exists and step.size %}
+                <span class="ms-1 text-muted">({{ step.size }})</span>
+              {% elif not step.exists and step.output.endswith('.csv') %}
+                <span class="ms-1 text-muted">(not generated yet)</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- Exists indicator -->
+        <div class="flex-shrink-0 d-flex align-items-center justify-content-center"
+             style="width:32px;height:32px;font-size:18px;">
+          {% if step.exists %}
+            <span title="File exists">✅</span>
+          {% else %}
+            <span title="Not yet generated">⏳</span>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Summary Bar -->
+  {% set done_count = steps | selectattr('exists') | list | length %}
+  {% set total_count = steps | length %}
+  <div class="mt-4 p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="fw-semibold" style="font-size:13px;">
+        <i class="fa-solid fa-chart-line me-2 text-success"></i>Pipeline Progress
+      </span>
+      <span class="fw-bold text-success">{{ done_count }} / {{ total_count }} steps complete</span>
+    </div>
+    <div class="progress" style="height:8px;border-radius:4px;">
+      <div class="progress-bar bg-success" role="progressbar"
+           style="width: {{ (done_count / total_count * 100) | round | int }}%"
+           aria-valuenow="{{ done_count }}" aria-valuemin="0" aria-valuemax="{{ total_count }}">
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

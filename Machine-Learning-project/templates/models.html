@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block title %}ML Models — CivicFix{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-robot me-2" style="color:var(--green)"></i>ML Models</h1>
+    <p>Click any model card to view its description, technique details and result charts</p>
+  </div>
+  <span style="background:var(--blue);color:#fff;border-radius:20px;padding:6px 16px;font-size:13px;font-weight:700">
+    <i class="fa-solid fa-layer-group me-2"></i>{{ models_info|length }} Models
+  </span>
+</div>
+
+<!-- ── BEST MODEL ─────────────────────────────────────────── -->
+{% if results %}
+{% set best = results | sort(attribute='Accuracy', reverse=True) | first %}
+<div class="panel mb-4" style="border:2px solid var(--green);background:linear-gradient(135deg,#f0fdf4,#f8fffb)">
+  <div class="d-flex align-items-center gap-3 flex-wrap">
+    <div class="stat-icon green" style="width:54px;height:54px;font-size:22px;flex-shrink:0"><i class="fa-solid fa-trophy"></i></div>
+    <div>
+      <div style="font-size:10px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px">⭐ Best Performing Model</div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy)">{{ best.Model }}</div>
+      <div class="d-flex gap-4 mt-2 flex-wrap" style="font-size:13px">
+        <span><span style="color:var(--gray)">Accuracy:</span> <strong style="color:var(--green);font-size:15px"> {{ best.Accuracy }}%</strong></span>
+        <span><span style="color:var(--gray)">F1-Score:</span> <strong> {{ best.F1_Score }}%</strong></span>
+        <span><span style="color:var(--gray)">Precision:</span> <strong> {{ best.Precision }}%</strong></span>
+        <span><span style="color:var(--gray)">Recall:</span> <strong> {{ best.Recall }}%</strong></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMPARISON TABLE ───────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title"><i class="fa-solid fa-table" style="color:var(--blue)"></i>Model Comparison</div>
+  <div class="table-responsive">
+    <table class="cf-table">
+      <thead><tr><th>Rank</th><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th style="min-width:130px">Accuracy Bar</th></tr></thead>
+      <tbody>
+      {% for row in results | sort(attribute='Accuracy', reverse=True) %}
+      {% set is_best = loop.index == 1 %}
+      <tr {% if is_best %}style="background:#f0fdf4"{% endif %}>
+        <td>
+          {% if loop.index==1 %}<span class="badge-closed">🥇 1st</span>
+          {% elif loop.index==2 %}<span class="badge-normal">🥈 2nd</span>
+          {% elif loop.index==3 %}<span class="badge-open">🥉 3rd</span>
+          {% else %}<span style="color:var(--text-s)">#{{ loop.index }}</span>{% endif %}
+        </td>
+        <td><strong {% if is_best %}style="color:var(--green)"{% endif %}>
+          {% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}
+          {{ row.Model }}</strong></td>
+        <td><strong {% if is_best %}style="color:var(--green)"{% endif %}>{{ row.Accuracy }}%</strong></td>
+        <td>{{ row.Precision }}%</td><td>{{ row.Recall }}%</td><td>{{ row.F1_Score }}%</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:{{ row.Accuracy|float }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div>
+            </div>
+            <span style="font-size:11px;color:var(--gray);white-space:nowrap">{{ row.Accuracy }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="panel mb-4" style="border:1.5px dashed var(--border);background:var(--gray-l)">
+  <div class="text-center py-3">
+    <i class="fa-solid fa-circle-info fa-2x mb-3" style="color:var(--blue)"></i>
+    <h5 style="font-weight:700;margin-bottom:8px">No model results yet</h5>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:12px">Run training to generate results</p>
+    <code style="background:var(--white);padding:8px 16px;border-radius:8px;font-size:13px;border:1px solid var(--border)">python src/run_all_models.py</code>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── MODEL CARDS (ACCORDION) ───────────────────────────── -->
+<div class="panel-title mt-2 mb-3" style="font-size:15px;font-weight:700;color:var(--navy)">
+  <i class="fa-solid fa-layer-group me-2" style="color:var(--orange)"></i>
+  All Models — Click to expand
+</div>
+
+{% set MODEL_INFO = {
+  'logistic_regression': {
+    'how': 'Logistic Regression calculates the probability of each class using the sigmoid (binary) or softmax (multi-class) function. It fits a linear decision boundary through the feature space.',
+    'formula': 'P(class k) = e^(z_k) / Σ e^(z_j)   where z = w·x + b',
+    'pros': ['Simple and interpretable', 'Fast training', 'Works well on linearly separable data', 'Outputs calibrated probabilities'],
+    'cons': ['Assumes linear relationship', 'Struggles with complex patterns', 'Sensitive to outliers'],
+    'color': '#2563eb', 'icon': 'fa-chart-line'
+  },
+  'decision_tree': {
+    'how': 'Decision Tree splits the dataset recursively on feature thresholds that minimize impurity (Gini index or entropy). Each internal node is a decision rule; each leaf is a predicted class.',
+    'formula': 'Gini = 1 - Σ p_i²   |   Entropy = -Σ p_i · log₂(p_i)',
+    'pros': ['Highly interpretable (visual tree)', 'No scaling needed', 'Handles non-linear boundaries', 'Fast prediction'],
+    'cons': ['Prone to overfitting', 'Unstable — small changes affect tree structure', 'Biased toward features with many levels'],
+    'color': '#16a34a', 'icon': 'fa-sitemap'
+  },
+  'random_forest': {
+    'how': 'Random Forest builds N decision trees on bootstrapped data samples. Each tree uses a random subset of features at each split. Final prediction is the majority vote across all trees.',
+    'formula': 'ŷ = mode{ T₁(x), T₂(x), ..., T_N(x) }',
+    'pros': ['Reduces overfitting vs single tree', 'Robust to outliers and noise', 'Provides feature importance', 'Best accuracy on this dataset (68.15%)'],
+    'cons': ['Slower to train than single tree', 'Less interpretable (black box)', 'Memory intensive with many trees'],
+    'color': '#16a34a', 'icon': 'fa-tree'
+  },
+  'gradient_boosting': {
+    'how': 'Gradient Boosting trains trees sequentially — each new tree fits the residual errors (negative gradient of the loss) of the previous ensemble. Learning rate shrinks each tree\'s contribution.',
+    'formula': 'F_m(x) = F_{m-1}(x) + η · h_m(x)   where h_m fits residuals',
+    'pros': ['High accuracy on tabular data', 'Handles mixed feature types', 'Built-in regularisation via learning rate'],
+    'cons': ['Slow training (sequential)', 'More hyperparameters to tune', 'Can overfit without careful tuning'],
+    'color': '#7c3aed', 'icon': 'fa-arrow-trend-up'
+  },
+  'adaboost': {
+    'how': 'AdaBoost (Adaptive Boosting) trains weak classifiers (depth-1 trees) sequentially. Misclassified samples get higher weights so the next classifier focuses on them. Final prediction is a weighted vote.',
+    'formula': 'H(x) = sign( Σ α_t · h_t(x) )   where α_t = ½ ln((1-ε_t)/ε_t)',
+    'pros': ['Simple concept', 'Low bias', 'No manual feature scaling needed', 'Less prone to overfitting than single trees'],
+    'cons': ['Sensitive to noisy data and outliers', 'Slower than Random Forest', 'Weak on highly imbalanced classes'],
+    'color': '#f97316', 'icon': 'fa-bolt'
+  },
+  'cv_all': {
+    'how': '5-Fold Stratified Cross-Validation splits the data into 5 equal parts. The model trains on 4 parts and tests on 1 — repeated 5 times. This gives a reliable estimate of real-world performance with confidence intervals.',
+    'formula': 'CV Score = (1/K) Σ score_k   where K=5 folds',
+    'pros': ['More reliable than single train-test split', 'Error bars show model stability', 'Stratified = equal class distribution per fold'],
+    'cons': ['5x slower to compute', 'Not suitable for time-series data'],
+    'color': '#0891b2', 'icon': 'fa-rotate'
+  },
+  'kmeans': {
+    'how': 'K-Means partitions N complaints into K clusters by minimising intra-cluster variance. It iteratively assigns each point to the nearest centroid and recomputes centroids as cluster means.',
+    'formula': 'Minimize Σ_k Σ_{x∈C_k} ||x − μ_k||²',
+    'pros': ['Simple and scalable', 'Fast on large datasets', 'Easy to interpret cluster centroids', 'Optimal K found via Elbow + Silhouette'],
+    'cons': ['Must specify K in advance', 'Assumes spherical clusters', 'Sensitive to initialisation', 'Struggles with varying density'],
+    'color': '#0891b2', 'icon': 'fa-circle-nodes'
+  },
+  'hierarchical': {
+    'how': 'Agglomerative Hierarchical Clustering starts with each point as its own cluster and merges the two closest clusters at each step (Ward linkage minimises within-cluster variance). A dendrogram shows the merge history.',
+    'formula': 'Ward: ΔE = (n_A·n_B)/(n_A+n_B) · ||μ_A − μ_B||²',
+    'pros': ['No need to specify K upfront', 'Dendrogram reveals natural groupings', 'Ward linkage gives compact clusters'],
+    'cons': ['O(n² log n) time complexity — slow on large data', 'Once merged, clusters cannot be separated', 'Sensitive to outliers'],
+    'color': '#be185d', 'icon': 'fa-diagram-project'
+  },
+  'isolation_forest': {
+    'how': 'Isolation Forest detects anomalies by randomly partitioning features. Anomalous points (outliers) are isolated in fewer splits because they are rare and different. Normal points require many splits.',
+    'formula': 'Anomaly Score = 2^(-E(h(x)) / c(n))   where h(x) = path length',
+    'pros': ['Works well on high-dimensional data', 'No need to label anomalies', 'Fast training with random trees', 'Handles mixed features'],
+    'cons': ['Contamination parameter must be estimated', 'May miss clustered anomalies', 'Less interpretable than supervised models'],
+    'color': '#ef4444', 'icon': 'fa-triangle-exclamation'
+  },
+  'dbscan_raw': {
+    'how': 'DBSCAN (Density-Based Spatial Clustering) groups nearby geographic points (lat/lng) into clusters without specifying K. Points in sparse areas are labelled as noise. Applied to raw GPS coordinates to find NYC complaint hotspots.',
+    'formula': 'Core point: |N_ε(x)| ≥ MinPts   |   N_ε(x) = {y : dist(x,y) ≤ ε}',
+    'pros': ['Finds clusters of any shape', 'No need to specify K', 'Identifies noise/outliers naturally', 'Perfect for geographic data'],
+    'cons': ['eps and MinPts must be tuned', 'Struggles with varying density clusters', 'Slow on very large datasets'],
+    'color': '#d97706', 'icon': 'fa-map-location-dot'
+  },
+  'dbscan_preproc': {
+    'how': 'DBSCAN applied to the full pre-processed and encoded feature set (not just geography). Uses StandardScaler so all features contribute equally. Eps tuned via sensitivity analysis on preprocessed data.',
+    'formula': 'Core point: |N_ε(x)| ≥ MinPts   |   distance in scaled feature space',
+    'pros': ['Uses all complaint features', 'Finds complaint pattern clusters', 'Handles noise in feature space'],
+    'cons': ['High-dimensional data makes tuning harder', 'Results less interpretable than geographic DBSCAN'],
+    'color': '#ca8a04', 'icon': 'fa-filter'
+  },
+  'pca': {
+    'how': 'PCA (Principal Component Analysis) finds the directions of maximum variance in the data and projects features onto those axes. PC1 captures the most variance, PC2 the second most. Scree plot shows how many PCs to keep.',
+    'formula': 'X_reduced = X · W   where W = eigenvectors of covariance matrix',
+    'pros': ['Reduces noise and redundancy', 'Enables 2D/3D visualisation', 'Speeds up downstream ML', 'Reveals feature relationships'],
+    'cons': ['PCs are harder to interpret than original features', 'Linear method — misses non-linear structure', 'Loses some information'],
+    'color': '#0284c7', 'icon': 'fa-compress-arrows-alt'
+  },
+  'tsne': {
+    'how': 't-SNE (t-distributed Stochastic Neighbour Embedding) maps high-dimensional data to 2D by preserving local neighbourhood relationships. It uses a Student t-distribution in 2D to avoid the "crowding problem" of Gaussian distributions.',
+    'formula': 'KL(P || Q) = Σ p_ij · log(p_ij / q_ij)   minimised by gradient descent',
+    'pros': ['Excellent for visualising clusters', 'Preserves local structure better than PCA', 'Reveals non-linear patterns'],
+    'cons': ['Not suitable for feature reduction before ML', 'Different runs give different layouts', 'Slow on large datasets', 'Global structure not preserved'],
+    'color': '#7c3aed', 'icon': 'fa-braille'
+  }
+} %}
+
+{% for m in models_info %}
+{% set info = MODEL_INFO.get(m.slug, {}) %}
+<div class="panel mb-3" style="padding:0;overflow:hidden;border:1.5px solid {% if m.trained %}#bbf7d0{% else %}var(--border){% endif %}">
+
+  <!-- ── HEADER — click to toggle ──────────────────────── -->
+  <div onclick="toggleModel('{{ m.slug }}')"
+       style="padding:16px 20px;cursor:pointer;display:flex;align-items:center;
+              gap:14px;background:var(--white);user-select:none">
+    <!-- Module + icon -->
+    <div style="width:44px;height:44px;border-radius:11px;flex-shrink:0;display:flex;
+                align-items:center;justify-content:center;font-size:17px;
+                background:{{ info.get('color','#2563eb') }}18;color:{{ info.get('color','#2563eb') }}">
+      <i class="fa-solid {{ info.get('icon','fa-robot') }}"></i>
+    </div>
+    <!-- Name + module badge -->
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:15px;font-weight:700;color:var(--navy)">{{ m.name }}</span>
+        <span style="background:{% if m.module=='M2' %}var(--blue){% elif m.module=='M3' %}var(--green){% else %}var(--orange){% endif %};
+                     color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700">
+          {{ m.module }}
+        </span>
+        <span style="background:{% if m.type=='Classification' %}var(--blue-l){% else %}#fef3c7{% endif %};
+                     color:{% if m.type=='Classification' %}var(--blue){% else %}#b45309{% endif %};
+                     border-radius:6px;padding:2px 9px;font-size:11px;font-weight:600">
+          {{ m.type }}
+        </span>
+        {% if m.trained %}
+        <span class="badge-closed" style="font-size:11px">✅ Trained</span>
+        {% else %}
+        <span class="badge-open" style="font-size:11px">⏳ Not trained</span>
+        {% endif %}
+      </div>
+      <div style="font-size:12.5px;color:var(--gray);margin-top:3px">{{ m.desc }}</div>
+    </div>
+    <!-- Chevron -->
+    <i class="fa-solid fa-chevron-down" id="chv-{{ m.slug }}"
+       style="color:var(--gray);transition:transform .25s;flex-shrink:0;font-size:13px"></i>
+  </div>
+
+  <!-- ── BODY — hidden by default ─────────────────────── -->
+  <div id="body-{{ m.slug }}" style="display:none;border-top:1px solid var(--border)">
+
+    <!-- INFO SECTION -->
+    <div style="padding:20px;background:{{ info.get('color','#2563eb') }}06;
+                border-bottom:1px solid var(--border)">
+      <div class="row g-4">
+        <!-- How it works -->
+        <div class="col-md-6">
+          <div style="font-size:12px;font-weight:700;color:{{ info.get('color','#2563eb') }};
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+            <i class="fa-solid fa-circle-info me-2"></i>How It Works
+          </div>
+          <p style="font-size:13px;color:var(--text-m);line-height:1.7;margin:0">
+            {{ info.get('how', m.desc) }}
+          </p>
+          {% if info.get('formula') %}
+          <div style="background:var(--navy);color:#4ade80;border-radius:8px;padding:10px 14px;
+                      margin-top:12px;font-family:monospace;font-size:12.5px;line-height:1.6">
+            {{ info.formula }}
+          </div>
+          {% endif %}
+        </div>
+        <!-- Pros / Cons -->
+        <div class="col-md-3">
+          <div style="font-size:12px;font-weight:700;color:var(--green);
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+            <i class="fa-solid fa-thumbs-up me-2"></i>Strengths
+          </div>
+          <ul style="font-size:12.5px;color:var(--text-m);line-height:1.9;padding-left:18px;margin:0">
+            {% for p in info.get('pros', []) %}
+            <li>{{ p }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="col-md-3">
+          <div style="font-size:12px;font-weight:700;color:var(--orange);
+                      text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+            <i class="fa-solid fa-thumbs-down me-2"></i>Limitations
+          </div>
+          <ul style="font-size:12.5px;color:var(--text-m);line-height:1.9;padding-left:18px;margin:0">
+            {% for c in info.get('cons', []) %}
+            <li>{{ c }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Features + Target -->
+      <div class="d-flex gap-4 mt-3 flex-wrap" style="font-size:12.5px">
+        <div>
+          <span style="color:var(--gray);font-weight:700">Features:</span>
+          <span style="color:var(--text-m)"> {{ m.features }}</span>
+        </div>
+        <div>
+          <span style="color:var(--gray);font-weight:700">Target:</span>
+          <span style="color:var(--text-m)"> {{ m.target }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    {% if m.charts %}
+    <div style="padding:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;
+                  letter-spacing:.06em;margin-bottom:14px">
+        <i class="fa-solid fa-chart-column me-2"></i>Result Charts
+      </div>
+      <div class="row g-3">
+        {% for img in m.charts %}
+        <div class="col-md-6">
+          <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">
+            <div style="padding:9px 14px;background:var(--gray-l);border-bottom:1px solid var(--border);
+                        font-size:12.5px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:8px">
+              <i class="fa-solid fa-chart-bar" style="color:{{ info.get('color','#2563eb') }};font-size:11px"></i>
+              {{ img.replace('_',' ').replace('.png','').title() }}
+              <a href="{{ url_for('model_image', filename=img) }}" target="_blank"
+                 style="margin-left:auto;color:var(--text-s);font-size:12px">
+                <i class="fa-solid fa-expand"></i>
+              </a>
+            </div>
+            <div style="padding:12px;background:var(--white)">
+              <img src="{{ url_for('model_image', filename=img) }}"
+                   alt="{{ img }}" class="img-fluid rounded"
+                   style="width:100%;max-height:300px;object-fit:contain"
+                   loading="lazy"
+                   onerror="this.style.display='none'">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif m.trained %}
+    <div style="padding:20px;text-align:center;color:var(--text-s);font-size:13px">
+      <i class="fa-solid fa-image-slash mb-2 d-block fa-2x"></i>
+      Charts not found. Run <code>python src/run_all_models.py</code>
+    </div>
+    {% else %}
+    <div style="padding:20px;text-align:center;color:var(--text-s);font-size:13px">
+      <i class="fa-solid fa-clock mb-2 d-block fa-2x"></i>
+      Model not yet trained. Run the training script first.
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleModel(slug) {
+  const body = document.getElementById('body-' + slug);
+  const chv  = document.getElementById('chv-'  + slug);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  chv.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+</script>
+{% endblock %}

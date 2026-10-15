@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Register{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-3">
+  <div class="col-md-5">
+    <div class="panel">
+      <div class="text-center mb-4">
+        <div style="font-size:40px;color:var(--green)"><i class="fa-solid fa-user-plus"></i></div>
+        <h3 class="mt-2">Create Account</h3>
+        <p class="text-muted">Join CivicFix and help improve your city</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('register') }}" id="regForm" novalidate>
+
+        <div class="mb-3">
+          <label class="cf-label">Role <span class="text-danger">*</span></label>
+          <div class="d-flex gap-3">
+            <label style="flex:1;border:2px solid #e2e8f0;border-radius:9px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px">
+              <input type="radio" name="role" value="user" checked><span>👤 Citizen</span>
+            </label>
+            <label style="flex:1;border:2px solid #e2e8f0;border-radius:9px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px">
+              <input type="radio" name="role" value="manager"><span>🛠️ Manager</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Username <span class="text-danger">*</span></label>
+          <input name="username" id="r-username" type="text" class="cf-input"
+                 placeholder="Choose a username" oninput="rclear('err-ru',this)">
+          <div class="invalid-hint" id="err-ru">Username is required.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Email <span class="text-danger">*</span></label>
+          <input name="email" id="r-email" type="email" class="cf-input"
+                 placeholder="you@example.com" oninput="rclear('err-re',this)">
+          <div class="invalid-hint" id="err-re">Valid email is required.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="cf-label">Password <span class="text-danger">*</span></label>
+          <input name="password" id="r-password" type="password" class="cf-input"
+                 placeholder="Min. 6 characters" oninput="rclear('err-rp',this)">
+          <div class="invalid-hint" id="err-rp">Password must be at least 6 characters.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="cf-label">Confirm Password <span class="text-danger">*</span></label>
+          <input name="confirm_password" id="r-confirm" type="password" class="cf-input"
+                 placeholder="Repeat password" oninput="rclear('err-rc',this)">
+          <div class="invalid-hint" id="err-rc">Passwords do not match.</div>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 py-2"
+                onclick="return validateReg()">Create Account</button>
+      </form>
+
+      <div class="text-center mt-3" style="font-size:13px">
+        Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.invalid-hint { color:#dc2626;font-size:12.5px;margin-top:5px;display:none; }
+.invalid-hint.show { display:block; }
+.cf-input.error { border-color:#dc2626 !important; }
+</style>
+<script>
+function rclear(id, el) {
+  document.getElementById(id).classList.remove('show');
+  el.classList.remove('error');
+}
+function showRErr(id, elId) {
+  document.getElementById(id).classList.add('show');
+  if (elId) document.getElementById(elId).classList.add('error');
+}
+function validateReg() {
+  let valid = true;
+  const u = document.getElementById('r-username').value.trim();
+  const e = document.getElementById('r-email').value.trim();
+  const p = document.getElementById('r-password').value;
+  const c = document.getElementById('r-confirm').value;
+
+  if (!u) { showRErr('err-ru','r-username'); valid=false; }
+  if (!e || !e.includes('@')) { showRErr('err-re','r-email'); valid=false; }
+  if (p.length < 6) { showRErr('err-rp','r-password'); valid=false; }
+  if (p !== c) { showRErr('err-rc','r-confirm'); valid=false; }
+
+  if (!valid) {
+    const first = document.querySelector('.invalid-hint.show');
+    if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+  return valid;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — About{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1><i class="fa-solid fa-circle-info me-2" style="color:var(--green)"></i>About CivicFix</h1>
+    <p>A machine learning project built on NYC 311 civic complaint data</p>
+  </div>
+</div>
+
+<!-- ── WHAT IS CIVICFIX ───────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-city" style="color:var(--green)"></i>What is CivicFix?
+  </div>
+  <p style="font-size:14px;color:var(--text-m);line-height:1.8;margin:0">
+    <strong>CivicFix</strong> is an AI-powered civic complaint management system built on top of
+    New York City's 311 service request dataset. It uses machine learning to
+    <strong>predict the resolution status</strong> of a complaint — whether it will be
+    <span style="color:#16a34a;font-weight:600">Closed</span>,
+    <span style="color:#2563eb;font-weight:600">In Progress</span>, or
+    <span style="color:#f97316;font-weight:600">Open</span> — based on the type of issue,
+    location, agency and other factors.
+  </p>
+</div>
+
+<!-- ── THE PROBLEM + SOLUTION ─────────────────────────────── -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="panel h-100" style="border-left:4px solid var(--red)">
+      <div class="panel-title">
+        <i class="fa-solid fa-triangle-exclamation" style="color:var(--red)"></i>The Problem
+      </div>
+      <ul style="font-size:13.5px;color:var(--text-m);line-height:2;padding-left:18px;margin:0">
+        <li>New York City receives <strong>millions</strong> of 311 complaints every year</li>
+        <li>Citizens have no idea when their complaint will be resolved</li>
+        <li>Manual triage of complaints is slow and inconsistent</li>
+        <li>Different agencies handle different types of issues — routing can be wrong</li>
+        <li>There is no automated priority assignment based on complaint type</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="panel h-100" style="border-left:4px solid var(--green)">
+      <div class="panel-title">
+        <i class="fa-solid fa-lightbulb" style="color:var(--green)"></i>Our Solution
+      </div>
+      <ul style="font-size:13.5px;color:var(--text-m);line-height:2;padding-left:18px;margin:0">
+        <li>Train ML models on <strong>50,000 real NYC 311 records</strong></li>
+        <li>Predict complaint status automatically before resolution</li>
+        <li>Auto-assign the correct department based on complaint type</li>
+        <li>Visualise patterns — which areas, agencies and issue types have most complaints</li>
+        <li>Give citizens and managers a clear, easy-to-use dashboard</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── DATASET ────────────────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-database" style="color:var(--blue)"></i>Dataset
+  </div>
+  <div class="row g-3">
+    {% for label, val, color in [
+      ('Source',          'NYC Open Data — 311 Service Requests',   'var(--blue)'),
+      ('File',            'erm2-nwe9.csv',                           'var(--navy)'),
+      ('Total Records',   '50,000 rows',                             'var(--green)'),
+      ('Columns',         '44 features per record',                  'var(--navy)'),
+      ('Target Variable', 'status — Open / In Progress / Closed',    'var(--orange)'),
+      ('Time Period',     '2026 (recent NYC 311 data)',               'var(--gray)'),
+    ] %}
+    <div class="col-md-4">
+      <div style="background:var(--gray-l);border-radius:9px;padding:13px 15px">
+        <div style="font-size:10.5px;font-weight:700;color:var(--gray);
+                    text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">{{ label }}</div>
+        <div style="font-size:13.5px;font-weight:600;color:{{ color }}">{{ val }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── ML MODELS USED ─────────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-robot" style="color:var(--purple)"></i>Machine Learning Models
+  </div>
+  <div class="row g-3">
+    {% for module, name, desc, color in [
+      ('M2', 'Logistic Regression',    'Predicts status probability using sigmoid/softmax. Baseline model.',        '#2563eb'),
+      ('M3', 'Decision Tree',          'Splits data on rules. Easy to visualise. max_depth=10.',                    '#16a34a'),
+      ('M3', 'Random Forest',          '100 decision trees combined by majority vote. Best accuracy: 68.15%.',      '#15803d'),
+      ('M3', 'Gradient Boosting',      'Trees trained sequentially to fix previous errors. learning_rate=0.1.',     '#7c3aed'),
+      ('M3', 'AdaBoost',               'Weak classifiers boosted adaptively. Focuses on hard samples.',             '#f97316'),
+      ('M4', 'K-Means Clustering',     'Groups complaints into 5 natural clusters. Optimal K by Elbow + Silhouette.','#0891b2'),
+      ('M4', 'Hierarchical Clustering','Agglomerative clustering with Ward linkage. Dendrogram analysis.',           '#be185d'),
+    ] %}
+    <div class="col-md-6">
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px;
+                  background:var(--white);border:1px solid var(--border);border-radius:10px">
+        <span style="background:{{ color }}18;color:{{ color }};border-radius:7px;
+                     padding:5px 10px;font-size:11px;font-weight:700;white-space:nowrap;flex-shrink:0">
+          {{ module }}
+        </span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--navy)">{{ name }}</div>
+          <div style="font-size:12.5px;color:var(--text-m);margin-top:3px;line-height:1.6">{{ desc }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── PREPROCESSING STEPS ────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-gear" style="color:var(--orange)"></i>Preprocessing Pipeline (9 Steps)
+  </div>
+  <div class="row g-2">
+    {% for num, step, desc in [
+      ('01', 'Load & Understand',    'Load raw CSV, inspect shape, data types, missing values'),
+      ('02', 'Handle Missing Values','Drop columns >60% missing, fill with mean/mode'),
+      ('03', 'Label Encoding',       'Convert categorical text to numbers (agency, complaint_type)'),
+      ('04', 'One-Hot Encoding',     'Binary columns for borough, channel type, address type'),
+      ('05', 'Ordinal Encoding',     'Encode status order: Open=0 < In Progress=1 < Closed=2'),
+      ('06', 'Target Encoding',      'Replace category with mean status value per category'),
+      ('07', 'Embedding Encoding',   'Mean target encoding for high-cardinality columns'),
+      ('08', 'Feature Scaling',      'StandardScaler on numerical columns (lat, lng, council_district)'),
+      ('09', 'Final Pipeline',       'Combine all steps → save ML-ready dataset'),
+    ] %}
+    <div class="col-md-4">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+                  background:var(--gray-l);border-radius:9px">
+        <span style="background:var(--green);color:#fff;border-radius:6px;
+                     padding:3px 8px;font-size:11px;font-weight:700;flex-shrink:0">
+          {{ num }}
+        </span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--navy)">{{ step }}</div>
+          <div style="font-size:11.5px;color:var(--gray);margin-top:1px">{{ desc }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── TECH STACK ─────────────────────────────────────────── -->
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-code" style="color:var(--blue)"></i>Technology Stack
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% for tech, color in [
+      ('Python 3.12',      '#2563eb'),
+      ('Flask',            '#16a34a'),
+      ('Pandas',           '#f97316'),
+      ('NumPy',            '#0891b2'),
+      ('Scikit-learn',     '#7c3aed'),
+      ('XGBoost',          '#be185d'),
+      ('Matplotlib',       '#d97706'),
+      ('Seaborn',          '#0284c7'),
+      ('Chart.js',         '#dc2626'),
+      ('Bootstrap 5',      '#7c3aed'),
+      ('SQLite',           '#64748b'),
+      ('HTML / CSS / JS',  '#374151'),
+    ] %}
+    <span style="background:{{ color }}15;color:{{ color }};border:1.5px solid {{ color }}30;
+                 border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600">
+      {{ tech }}
+    </span>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ── PROJECT OBJECTIVE ──────────────────────────────────── -->
+<div class="panel">
+  <div class="panel-title">
+    <i class="fa-solid fa-bullseye" style="color:var(--green)"></i>Project Objective
+  </div>
+  <div class="row g-3">
+    {% for icon, color, title, text in [
+      ('fa-brain',               'var(--blue)',   'Predict Status',
+       'Use ML models to predict whether a civic complaint will be Open, In Progress, or Closed based on complaint type, agency, borough and other features.'),
+      ('fa-magnifying-glass-chart','var(--orange)','Analyse Patterns',
+       'Discover patterns in NYC 311 data — which areas have the most complaints, which agencies close them fastest, and which issues are most common.'),
+      ('fa-wand-magic-sparkles',  'var(--purple)', 'Auto-Assign Departments',
+       'Automatically route each complaint to the correct city department (NYPD, DOT, HPD, DSNY etc.) without manual intervention.'),
+      ('fa-chart-bar',            'var(--green)',  'Visualise Insights',
+       'Provide clear charts for EDA, correlation, preprocessing, model performance — all in one place with explanations.'),
+    ] %}
+    <div class="col-md-6">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <div style="width:42px;height:42px;border-radius:10px;flex-shrink:0;
+                    background:{{ color }}18;display:flex;align-items:center;
+                    justify-content:center;font-size:16px;color:{{ color }}">
+          <i class="fa-solid {{ icon }}"></i>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:5px">{{ title }}</div>
+          <div style="font-size:13px;color:var(--text-m);line-height:1.7">{{ text }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}CivicFix — Report Issue{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Report a Problem</h1><p>Fill all required fields. AI assigns the department automatically.</p></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-8">
+    <div class="panel">
+      <form method="POST" action="{{ url_for('report') }}" enctype="multipart/form-data"
+            id="reportForm" novalidate>
+
+        <!-- Description -->
+        <div class="mb-3">
+          <label class="cf-label">Describe the Problem <span class="text-danger">*</span></label>
+          <textarea name="description" id="description" class="cf-textarea" rows="5"
+            placeholder="Describe the civic issue clearly — what it is, where exactly, how long it has been there..."></textarea>
+          <div class="invalid-hint" id="err-description">Please describe the problem.</div>
+        </div>
+
+        <!-- Urgency -->
+        <div class="mb-3">
+          <label class="cf-label">How Urgent Is This? <span class="text-danger">*</span></label>
+          <div class="d-flex flex-column gap-2" id="urgency-group">
+            {% for val, label, desc in [('Urgent','🔴 Urgent','Immediate danger or serious disruption'),
+                                         ('Normal','🟡 Normal','Needs attention but not critical'),
+                                         ('Low','🟢 Low','Minor issue, can wait')] %}
+            <label class="urgency-option" for="pri-{{val}}">
+              <input type="radio" name="priority" id="pri-{{val}}" value="{{val}}"
+                     {% if val=='Normal' %}checked{% endif %}
+                     onchange="clearErr('err-urgency')">
+              <div><strong>{{label}}</strong>
+                <span class="text-muted" style="font-size:13px"> — {{desc}}</span></div>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="invalid-hint" id="err-urgency">Please select urgency level.</div>
+        </div>
+
+        <!-- Issue Type -->
+        <div class="mb-3">
+          <label class="cf-label">Issue Type <span class="text-danger">*</span></label>
+          <select name="complaint_type" id="complaint_type" class="cf-select"
+                  onchange="clearErr('err-type'); showDept(this.value)">
+            <option value="">— Select issue type —</option>
+            {% for t in ['Illegal Parking','Noise - Residential','Noise - Street/Sidewalk',
+                         'Blocked Driveway','UNSANITARY CONDITION','Street Condition',
+                         'Water Maintenance','HEAT/HOT WATER','Derelict Vehicle','Graffiti',
+                         'Street Light Condition','Pothole','Sidewalk Condition','Other'] %}
+            <option>{{t}}</option>
+            {% endfor %}
+          </select>
+          <div class="invalid-hint" id="err-type">Please select an issue type.</div>
+          <!-- Live dept preview -->
+          <div id="dept-preview" style="display:none;margin-top:8px;padding:10px 14px;
+               background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px">
+            🏢 <strong>Auto-assigned to:</strong>
+            <span id="dept-name" style="color:#1d4ed8;font-weight:600"></span>
+          </div>
+        </div>
+
+        <!-- Address + Borough -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="cf-label">Location / Address <span class="text-danger">*</span></label>
+            <input name="address" id="address" type="text" class="cf-input"
+                   placeholder="e.g. 123 Main Street"
+                   oninput="clearErr('err-address')">
+            <div class="invalid-hint" id="err-address">Please enter the location/address.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="cf-label">Borough <span class="text-danger">*</span></label>
+            <select name="borough" id="borough" class="cf-select"
+                    onchange="clearErr('err-borough')">
+              <option value="">— Select Borough —</option>
+              <option>BROOKLYN</option><option>QUEENS</option>
+              <option>BRONX</option><option>MANHATTAN</option>
+              <option>STATEN ISLAND</option>
+            </select>
+            <div class="invalid-hint" id="err-borough">Please select a borough.</div>
+          </div>
+        </div>
+
+        <!-- Photo -->
+        <div class="mb-4">
+          <label class="cf-label">Photo (optional)</label>
+          <input name="image" type="file" class="form-control" accept=".jpg,.jpeg,.png,.gif">
+          <div class="form-text">Upload a photo of the problem (JPG, PNG, GIF — max 16MB)</div>
+        </div>
+
+        <button type="submit" class="btn btn-success w-100 py-2" style="font-size:15px"
+                onclick="return validateReport()">
+          🚀 Submit Complaint
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="panel mb-3" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div style="font-weight:600;margin-bottom:10px;color:#15803d">🤖 AI Auto-Assignment</div>
+      <p style="font-size:13px;color:#374151;line-height:1.7;margin:0">
+        After you submit:<br>
+        ✅ AI classifies the issue<br>
+        ✅ Assigns the correct department<br>
+        ✅ Sets priority based on urgency<br><br>
+        You <strong>don't need to choose</strong> a department.
+      </p>
+    </div>
+    <div class="panel">
+      <div style="font-weight:600;margin-bottom:10px">📋 Required Fields</div>
+      <ul style="font-size:13px;color:#374151;line-height:2;padding-left:18px;margin:0">
+        <li>Problem description</li>
+        <li>Urgency level</li>
+        <li>Issue type</li>
+        <li>Location / address</li>
+        <li>Borough</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.invalid-hint {
+  color: #dc2626; font-size: 12.5px; margin-top: 5px;
+  display: none;
+}
+.invalid-hint.show { display: block; }
+.cf-input.error, .cf-select.error, .cf-textarea.error {
+  border-color: #dc2626 !important;
+}
+.urgency-option {
+  border: 2px solid #e2e8f0; border-radius: 9px;
+  padding: 12px 14px; cursor: pointer;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color .15s;
+}
+.urgency-option:has(input:checked) {
+  border-color: var(--green); background: #f0fdf4;
+}
+.urgency-group-error { border: 2px solid #dc2626; border-radius: 9px; padding: 8px; }
+</style>
+<script>
+function showErr(id, inputId) {
+  document.getElementById(id).classList.add('show');
+  if (inputId) {
+    const el = document.getElementById(inputId);
+    if (el) el.classList.add('error');
+  }
+}
+function clearErr(id) {
+  document.getElementById(id).classList.remove('show');
+}
+function clearInputErr(inputId) {
+  const el = document.getElementById(inputId);
+  if (el) el.classList.remove('error');
+}
+
+// Add oninput to clear error on typing
+document.addEventListener('DOMContentLoaded', function() {
+  ['description','address'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { clearInputErr(id); });
+  });
+  ['complaint_type','borough'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', function() { clearInputErr(id); });
+  });
+});
+
+const DEPT_MAP = {
+  'Illegal Parking'        : 'NYPD — Traffic Division',
+  'Noise - Residential'    : 'NYPD — Community Affairs',
+  'Noise - Street/Sidewalk': 'NYPD — Community Affairs',
+  'Noise - Vehicle'        : 'NYPD — Traffic Division',
+  'Blocked Driveway'       : 'NYPD — Traffic Division',
+  'Derelict Vehicle'       : 'NYPD — Traffic Division',
+  'Graffiti'               : 'NYPD — Community Affairs',
+  'UNSANITARY CONDITION'   : 'Dept. of Sanitation (DSNY)',
+  'Dirty Condition'        : 'Dept. of Sanitation (DSNY)',
+  'Street Condition'       : 'Dept. of Transportation (DOT)',
+  'Street Light Condition' : 'Dept. of Transportation (DOT)',
+  'Pothole'                : 'Dept. of Transportation (DOT)',
+  'Sidewalk Condition'     : 'Dept. of Transportation (DOT)',
+  'Water Maintenance'      : 'Dept. of Environmental Protection (DEP)',
+  'HEAT/HOT WATER'         : 'Dept. of Housing Preservation (HPD)',
+  'PLUMBING'               : 'Dept. of Housing Preservation (HPD)',
+  'PAINT/PLASTER'          : 'Dept. of Housing Preservation (HPD)',
+  'Other'                  : 'Municipal Services',
+};
+
+function showDept(val) {
+  const preview = document.getElementById('dept-preview');
+  const name    = document.getElementById('dept-name');
+  if (val && DEPT_MAP[val]) {
+    name.textContent = DEPT_MAP[val];
+    preview.style.display = 'block';
+  } else if (val) {
+    name.textContent = 'Municipal Services';
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function validateReport() {
+  let valid = true;
+
+  const desc = document.getElementById('description').value.trim();
+  if (!desc) { showErr('err-description','description'); valid = false; }
+  else clearErr('err-description');
+
+  const type = document.getElementById('complaint_type').value;
+  if (!type) { showErr('err-type','complaint_type'); valid = false; }
+  else clearErr('err-type');
+
+  const addr = document.getElementById('address').value.trim();
+  if (!addr) { showErr('err-address','address'); valid = false; }
+  else clearErr('err-address');
+
+  const borough = document.getElementById('borough').value;
+  if (!borough) { showErr('err-borough','borough'); valid = false; }
+  else clearErr('err-borough');
+
+  const priority = document.querySelector('input[name="priority"]:checked');
+  if (!priority) { showErr('err-urgency', null); valid = false; }
+  else clearErr('err-urgency');
+
+  if (!valid) {
+    // Scroll to first error
+    const firstErr = document.querySelector('.invalid-hint.show');
+    if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  return valid;
+}
+</script>
+{% endblock %}
