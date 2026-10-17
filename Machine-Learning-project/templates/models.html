@@ -30,57 +30,81 @@
     </div>
   </div>
 </div>
+{% endif %}
 
-<!-- ── COMPARISON TABLE ───────────────────────────────────── -->
+<!-- ── COMPARISON TABLE — ALL 13 MODELS ──────────────────── -->
 <div class="panel mb-4">
-  <div class="panel-title"><i class="fa-solid fa-table" style="color:var(--blue)"></i>Model Comparison</div>
+  <div class="panel-title">
+    <i class="fa-solid fa-table" style="color:var(--green)"></i>All Models Overview
+  </div>
   <div class="table-responsive">
     <table class="cf-table">
-      <thead><tr><th>Rank</th><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th style="min-width:130px">Accuracy Bar</th></tr></thead>
+      <thead>
+        <tr>
+          <th>Module</th><th>Model</th><th>Type</th>
+          <th>Evaluation metrics</th>
+        </tr>
+      </thead>
       <tbody>
-      {% for row in results | sort(attribute='Accuracy', reverse=True) %}
-      {% set is_best = loop.index == 1 %}
-      <tr {% if is_best %}style="background:#f0fdf4"{% endif %}>
-        <td>
-          {% if loop.index==1 %}<span class="badge-closed">🥇 1st</span>
-          {% elif loop.index==2 %}<span class="badge-normal">🥈 2nd</span>
-          {% elif loop.index==3 %}<span class="badge-open">🥉 3rd</span>
-          {% else %}<span style="color:var(--text-s)">#{{ loop.index }}</span>{% endif %}
-        </td>
-        <td><strong {% if is_best %}style="color:var(--green)"{% endif %}>
-          {% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}
-          {{ row.Model }}</strong></td>
-        <td><strong {% if is_best %}style="color:var(--green)"{% endif %}>{{ row.Accuracy }}%</strong></td>
-        <td>{{ row.Precision }}%</td><td>{{ row.Recall }}%</td><td>{{ row.F1_Score }}%</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden">
-              <div style="height:100%;width:{{ row.Accuracy|float }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div>
+      {# Build a dict of results by model name for quick lookup #}
+      {% set results_map = {} %}
+      {% for row in results %}
+        {% set _ = results_map.update({row.Model: row}) %}
+      {% endfor %}
+
+      {# Sort models_info by module then name: M2 first, then M3, then M4 #}
+      {% set module_order = {'M2': 1, 'M3': 2, 'M4': 3} %}
+      {% for m in models_info | sort(attribute='module') %}
+        {% set row = results_map.get(m.name, {}) %}
+        {% set acc = row.get('Accuracy', 0) | float %}
+        {% set is_best = best is defined and row and row.get('Model') == best.get('Model','') %}
+        <tr {% if is_best %}style="background:#f0fdf4"{% endif %}>
+          <td>
+            <span style="background:{% if m.module=='M2' %}var(--blue){% elif m.module=='M3' %}var(--green){% else %}var(--orange){% endif %};
+                         color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700">
+              {{ m.module }}
+            </span>
+          </td>
+          <td>
+            <strong {% if is_best %}style="color:var(--green)"{% endif %}>
+              {% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}
+              {{ m.name }}
+            </strong>
+          </td>
+          <td>
+            <span style="background:{% if m.type=='Classification' %}var(--blue-l){% elif m.type=='Clustering' %}var(--orange-l){% elif m.type=='Anomaly Detection' %}var(--red-l){% else %}var(--purple-l){% endif %};
+                         color:{% if m.type=='Classification' %}var(--blue){% elif m.type=='Clustering' %}var(--orange){% elif m.type=='Anomaly Detection' %}var(--red){% else %}var(--purple){% endif %};
+                         border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap">
+              {{ m.type }}
+            </span>
+          </td>
+          {% if m.metrics %}
+          <td style="font-size:12px;line-height:1.8">
+            <span style="display:block;color:var(--gray);font-size:10px">{{ m.metric_label }}</span>
+            <strong {% if is_best %}style="color:var(--green)"{% endif %}>Accuracy {{ m.metrics.Accuracy }}%</strong>
+            <span class="ms-2">Precision {{ m.metrics.Precision }}%</span>
+            <span class="ms-2">Recall {{ m.metrics.Recall }}%</span>
+            <span class="ms-2">F1 {{ m.metrics.F1_Score }}%</span>
+            <div style="height:6px;background:var(--gray-l);border-radius:4px;overflow:hidden;margin-top:5px;max-width:420px">
+              <div style="height:100%;width:{{ m.metrics.Accuracy }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div>
             </div>
-            <span style="font-size:11px;color:var(--gray);white-space:nowrap">{{ row.Accuracy }}%</span>
-          </div>
-        </td>
-      </tr>
+          </td>
+          {% else %}
+          <td style="color:var(--text-m);font-size:12px;line-height:1.6">
+            {{ m.evaluation or ('Metrics are not available yet' if m.trained else 'Not yet trained') }}
+          </td>
+          {% endif %}
+        </tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
-{% else %}
-<div class="panel mb-4" style="border:1.5px dashed var(--border);background:var(--gray-l)">
-  <div class="text-center py-3">
-    <i class="fa-solid fa-circle-info fa-2x mb-3" style="color:var(--blue)"></i>
-    <h5 style="font-weight:700;margin-bottom:8px">No model results yet</h5>
-    <p style="font-size:13px;color:var(--gray);margin-bottom:12px">Run training to generate results</p>
-    <code style="background:var(--white);padding:8px 16px;border-radius:8px;font-size:13px;border:1px solid var(--border)">python src/run_all_models.py</code>
-  </div>
-</div>
-{% endif %}
 
-<!-- ── MODEL CARDS (ACCORDION) ───────────────────────────── -->
+<!-- ── MODEL CARDS (ACCORDION) — MODULE ORDER M2→M3→M4 ──── -->
 <div class="panel-title mt-2 mb-3" style="font-size:15px;font-weight:700;color:var(--navy)">
   <i class="fa-solid fa-layer-group me-2" style="color:var(--orange)"></i>
-  All Models — Click to expand
+  All Models — Click a model to see its method, settings, strengths, limitations and results
 </div>
 
 {% set MODEL_INFO = {
@@ -177,7 +201,15 @@
   }
 } %}
 
-{% for m in models_info %}
+{% set module_state = namespace(current='') %}
+{% for m in models_info | sort(attribute='module') %}
+{% if m.module != module_state.current %}
+{% set module_name = {'M2': 'Classification Baseline', 'M3': 'Ensemble Classifiers & Evaluation', 'M4': 'Unsupervised Learning'} %}
+<div class="panel-title mt-4 mb-3" style="font-size:15px;font-weight:700;color:var(--navy)">
+  <i class="fa-solid fa-layer-group me-2" style="color:var(--green)"></i>{{ module_name.get(m.module, 'Models') }}
+</div>
+{% set module_state.current = m.module %}
+{% endif %}
 {% set info = MODEL_INFO.get(m.slug, {}) %}
 <div class="panel mb-3" style="padding:0;overflow:hidden;border:1.5px solid {% if m.trained %}#bbf7d0{% else %}var(--border){% endif %}">
 
@@ -276,6 +308,23 @@
           <span style="color:var(--text-m)"> {{ m.target }}</span>
         </div>
       </div>
+
+      <div style="margin-top:16px;padding:12px 14px;border-radius:9px;background:var(--white);border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:{{ info.get('color','#2563eb') }};text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">
+          <i class="fa-solid fa-chart-simple me-1"></i>Evaluation Metrics
+        </div>
+        {% if m.metrics %}
+        <div style="font-size:10px;color:var(--gray);margin-bottom:6px">{{ m.metric_label }}</div>
+        <div class="d-flex flex-wrap gap-3" style="font-size:13px;color:var(--text-m)">
+          <span>Accuracy <strong>{{ m.metrics.Accuracy }}%</strong></span>
+          <span>Precision <strong>{{ m.metrics.Precision }}%</strong></span>
+          <span>Recall <strong>{{ m.metrics.Recall }}%</strong></span>
+          <span>F1-Score <strong>{{ m.metrics.F1_Score }}%</strong></span>
+        </div>
+        {% else %}
+        <div style="font-size:13px;color:var(--text-m)">{{ m.evaluation or 'Evaluation details are shown in the result charts.' }}</div>
+        {% endif %}
+      </div>
     </div>
 
     <!-- CHARTS -->
@@ -313,12 +362,12 @@
     {% elif m.trained %}
     <div style="padding:20px;text-align:center;color:var(--text-s);font-size:13px">
       <i class="fa-solid fa-image-slash mb-2 d-block fa-2x"></i>
-      Charts not found. Run <code>python src/run_all_models.py</code>
+      Result charts are not available yet.
     </div>
     {% else %}
     <div style="padding:20px;text-align:center;color:var(--text-s);font-size:13px">
       <i class="fa-solid fa-clock mb-2 d-block fa-2x"></i>
-      Model not yet trained. Run the training script first.
+      This model has not been trained yet.
     </div>
     {% endif %}
 

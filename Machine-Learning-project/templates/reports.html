@@ -77,49 +77,22 @@
   <div class="table-responsive">
     <table class="cf-table">
       <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Model</th>
-          <th>Accuracy</th>
-          <th>Precision</th>
-          <th>Recall</th>
-          <th>F1-Score</th>
-          <th>Accuracy Bar</th>
-        </tr>
+        <tr><th>Module</th><th>Model</th><th>Type</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Bar</th></tr>
       </thead>
       <tbody>
-      {% for row in model_results | sort(attribute='Accuracy', reverse=True) %}
+      {% for model in report_ranked_models %}
       {% set is_best = loop.index == 1 %}
       <tr {% if is_best %}style="background:#f0fdf4;"{% endif %}>
-        <td>
-          {% if loop.index == 1 %}<span class="badge-closed">🥇 1st</span>
-          {% elif loop.index == 2 %}<span class="badge-normal">🥈 2nd</span>
-          {% elif loop.index == 3 %}<span class="badge-open">🥉 3rd</span>
-          {% else %}<span style="color:var(--text-s);font-size:13px">#{{ loop.index }}</span>
-          {% endif %}
-        </td>
-        <td>
-          <strong {% if is_best %}style="color:var(--green)"{% endif %}>
-            {% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}
-            {{ row.Model }}
-          </strong>
-        </td>
-        <td>
-          <strong {% if is_best %}style="color:var(--green);font-size:14px"{% endif %}>
-            {{ row.Accuracy }}%
-          </strong>
-        </td>
-        <td>{{ row.Precision }}%</td>
-        <td>{{ row.Recall }}%</td>
-        <td>{{ row.F1_Score }}%</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:8px;min-width:120px">
-            <div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden">
-              <div style="height:100%;width:{{ row.Accuracy | float }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div>
-            </div>
-            <span style="font-size:11px;color:var(--gray);white-space:nowrap">{{ row.Accuracy }}%</span>
-          </div>
-        </td>
+        <td><span style="background:{% if model.module=='M2' %}var(--blue){% elif model.module=='M3' %}var(--green){% else %}var(--orange){% endif %};color:#fff;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:700">{{ model.module }}</span></td>
+        <td><strong {% if is_best %}style="color:var(--green)"{% endif %}>{% if is_best %}<i class="fa-solid fa-star me-1" style="color:var(--green)"></i>{% endif %}{{ model.name }}</strong></td>
+        <td><span style="font-size:11px;color:var(--text-m)">{{ model.type }}</span></td>
+        {% if model.metrics %}
+        <td><span style="display:block;color:var(--gray);font-size:10px">{{ model.metric_label }}</span><strong {% if is_best %}style="color:var(--green);font-size:14px"{% endif %}>{{ model.metrics.Accuracy }}%</strong></td>
+        <td>{{ model.metrics.Precision }}%</td><td>{{ model.metrics.Recall }}%</td><td>{{ model.metrics.F1_Score }}%</td>
+        <td><div style="display:flex;align-items:center;gap:8px;min-width:120px"><div style="flex:1;height:8px;background:var(--gray-l);border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ model.metrics.Accuracy | float }}%;background:{% if is_best %}var(--green){% else %}var(--blue){% endif %};border-radius:4px"></div></div><span style="font-size:11px;color:var(--gray);white-space:nowrap">{{ model.metrics.Accuracy }}%</span></div></td>
+        {% else %}
+        <td colspan="4" style="color:var(--text-m);font-size:12px">{{ model.evaluation }}</td><td style="color:var(--text-s);font-size:12px">—</td>
+        {% endif %}
       </tr>
       {% endfor %}
       </tbody>
@@ -130,13 +103,67 @@
 <!-- ── ACCURACY BAR CHART ────────────────────────────────── -->
 <div class="panel mb-4">
   <div class="panel-title">
-    <i class="fa-solid fa-chart-column" style="color:var(--orange)"></i>Model Accuracy Comparison
+    <i class="fa-solid fa-chart-column" style="color:var(--orange)"></i>Classifier Accuracy &amp; F1 Comparison (5 models)
   </div>
   <div style="position:relative;height:280px">
     <canvas id="accuracyChart"></canvas>
   </div>
 </div>
 
+{% endif %}
+
+{% if report_models %}
+<div class="panel mb-4">
+  <div class="panel-title">
+    <i class="fa-solid fa-layer-group" style="color:var(--green)"></i>All Model Reports
+    <span style="background:var(--green-l);color:var(--green);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;margin-left:4px">{{ report_models|length }} models</span>
+  </div>
+  <p style="font-size:12px;color:var(--text-s);margin:-4px 0 14px">Expand a model to see its metrics or evaluation details and related charts.</p>
+  <div class="d-flex flex-column gap-2">
+    {% for model in report_models %}
+    <details style="border:1px solid var(--border);border-radius:10px;background:var(--white);overflow:hidden">
+      <summary style="list-style:none;cursor:pointer;padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="background:{% if model.module=='M2' %}var(--blue){% elif model.module=='M3' %}var(--green){% else %}var(--orange){% endif %};color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700">{{ model.module }}</span>
+        <strong style="color:var(--navy);font-size:13px">{{ model.name }}</strong>
+        <span style="background:var(--gray-l);color:var(--text-m);border-radius:6px;padding:2px 8px;font-size:11px">{{ model.type }}</span>
+        {% if model.metrics %}
+        <span style="font-size:11px;color:var(--text-m);margin-left:auto">Accuracy {{ model.metrics.Accuracy }}% · Precision {{ model.metrics.Precision }}% · Recall {{ model.metrics.Recall }}% · F1 {{ model.metrics.F1_Score }}%</span>
+        {% else %}
+        <span style="font-size:11px;color:var(--text-m);margin-left:auto">{{ model.evaluation }}</span>
+        {% endif %}
+      </summary>
+      <div style="border-top:1px solid var(--border);padding:14px 16px;background:var(--gray-l)">
+        {% if model.metrics %}
+        <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:12px;color:var(--text-m)">
+          <span>Accuracy <strong>{{ model.metrics.Accuracy }}%</strong></span>
+          <span>Precision <strong>{{ model.metrics.Precision }}%</strong></span>
+          <span>Recall <strong>{{ model.metrics.Recall }}%</strong></span>
+          <span>F1-Score <strong>{{ model.metrics.F1_Score }}%</strong></span>
+        </div>
+        {% else %}
+        <p style="font-size:12px;color:var(--text-m);margin:0 0 12px">{{ model.evaluation }}</p>
+        {% endif %}
+        {% if model.charts %}
+        <div class="row g-3">
+          {% for img in model.charts %}
+          <div class="col-md-6">
+            <div style="border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--white)">
+              <div style="padding:8px 11px;background:var(--white);font-size:12px;font-weight:600;color:var(--navy)">{{ img.replace('_',' ').replace('.png','').title() }}</div>
+              <a href="{{ url_for('model_image', filename=img) }}" target="_blank">
+                <img src="{{ url_for('model_image', filename=img) }}" alt="{{ img }}" loading="lazy" style="width:100%;max-height:300px;object-fit:contain;padding:8px">
+              </a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p style="font-size:12px;color:var(--text-s);margin:0">No result charts are available for this model yet.</p>
+        {% endif %}
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</div>
 {% endif %}
 
 <!-- ── MODEL RESULT CHARTS ───────────────────────────────── -->

@@ -486,6 +486,7 @@ def visualization():
     sections = [
         {
             "id":    "eda",
+            "group": "Dataset Exploration",
             "icon":  "fa-chart-bar",
             "title": "Exploratory Data Analysis (EDA)",
             "desc":  "Distribution charts, trends and patterns from the CivicFix dataset",
@@ -503,6 +504,7 @@ def visualization():
         },
         {
             "id":    "corr",
+            "group": "Dataset Exploration",
             "icon":  "fa-diagram-project",
             "title": "Correlation & Outlier Analysis",
             "desc":  "Correlation heatmap, boxplots and IQR-based outlier detection on numerical features",
@@ -521,6 +523,7 @@ def visualization():
         },
         {
             "id":    "preproc",
+            "group": "Data Preparation",
             "icon":  "fa-gear",
             "title": "Preprocessing & Feature Engineering",
             "desc":  "Embedding encoding charts — mean target encoding for high-cardinality categorical columns",
@@ -538,26 +541,37 @@ def visualization():
                           "Agency performance", "Complaint type resolution", "Feature compression"],
             "imgs": [(f, label(f), "preproc_image") for f in prepr_imgs],
         },
-        {
-            "id":    "model",
-            "icon":  "fa-robot",
-            "title": "ML Model Results",
-            "desc":  "Confusion matrices, feature importances and model comparison for all 5 classifiers",
-            "color": "#16a34a",
-            "about": (
-                "These charts show the evaluation results of 5 ML classification models trained to predict "
-                "complaint status (Open / In Progress / Closed) from 8 features. "
-                "Confusion matrices show true vs predicted class counts — diagonal cells are correct predictions. "
-                "Feature importance charts reveal which input features most influence each model's decisions. "
-                "The comparison chart ranks all models by Accuracy and F1-Score. "
-                "Random Forest achieved the best performance at 68.15% accuracy (F1: 63.31%)."
-            ),
-            "keypoints": ["5 models compared", "3-class classification", "Confusion matrices",
-                          "Feature importances", "80/20 train-test split", "Random Forest best"],
-            "imgs": [(f, label(f), "model_image") for f in model_imgs],
-        },
     ]
 
+    # Show each model as its own expandable section with its related charts.
+    model_sections = [
+        ("logistic_regression", "Classification & Model Evaluation", "Logistic Regression", "fa-chart-line", "#2563eb", ["logistic_regression_confusion_matrix.png", "logistic_regression_metrics.png", "logistic_regression_feature_importance.png"], "Status classification with a linear decision boundary."),
+        ("decision_tree", "Classification & Model Evaluation", "Decision Tree", "fa-sitemap", "#16a34a", ["decision_tree_confusion_matrix.png", "decision_tree_metrics.png", "decision_tree_feature_importance.png"], "Status classification using interpretable feature splits."),
+        ("random_forest", "Classification & Model Evaluation", "Random Forest", "fa-tree", "#15803d", ["random_forest_confusion_matrix.png", "random_forest_metrics.png", "random_forest_feature_importance.png"], "Ensemble classification using bagged decision trees."),
+        ("gradient_boosting", "Classification & Model Evaluation", "Gradient Boosting", "fa-arrow-trend-up", "#7c3aed", ["gradient_boosting_confusion_matrix.png", "gradient_boosting_metrics.png", "gradient_boosting_feature_importance.png"], "Sequential boosting for complaint status classification."),
+        ("adaboost", "Classification & Model Evaluation", "AdaBoost", "fa-bolt", "#f97316", ["adaboost_confusion_matrix.png", "adaboost_metrics.png", "adaboost_feature_importance.png"], "Adaptive boosting that gives more weight to misclassified records."),
+        ("cv_all", "Classification & Model Evaluation", "Cross-Validation Model Comparison", "fa-rotate", "#0891b2", ["model_comparison.png", "classifier_accuracy_comparison.png", "classifier_f1_comparison.png"], "Classifier score comparisons from the saved evaluation results."),
+        ("kmeans", "Clustering & Dimension Reduction", "K-Means Clustering", "fa-circle-nodes", "#0891b2", ["kmeans_elbow_silhouette.png", "kmeans_cluster_visualization.png", "kmeans_cluster_sizes.png"], "Cluster selection, projected complaint groups, and cluster sizes."),
+        ("hierarchical", "Clustering & Dimension Reduction", "Hierarchical Clustering", "fa-diagram-project", "#be185d", ["hierarchical_dendrogram.png", "hierarchical_linkage_comparison.png", "hierarchical_cluster_visualization.png"], "Ward-linkage hierarchy, linkage scores, and cluster projection."),
+        ("isolation_forest", "Clustering & Dimension Reduction", "Anomaly Detection (Isolation Forest)", "fa-triangle-exclamation", "#ef4444", ["anomaly_detection_pca.png", "anomaly_score_distribution.png", "anomaly_contamination_sensitivity.png"], "Anomaly projection, score distribution, and contamination sensitivity."),
+        ("dbscan_raw", "Clustering & Dimension Reduction", "DBSCAN (Raw Geographic Data)", "fa-map-location-dot", "#d97706", ["dbscan_raw_geographic.png", "dbscan_raw_eps_sensitivity.png", "dbscan_raw_cluster_sizes.png"], "Geographic hotspots, epsilon sensitivity, and cluster sizes."),
+        ("dbscan_preproc", "Clustering & Dimension Reduction", "DBSCAN (Pre-Processed Data)", "fa-filter", "#ca8a04", ["dbscan_preprocessed_clusters.png", "dbscan_preprocessed_eps_sensitivity.png", "dbscan_preprocessed_cluster_sizes.png"], "Feature-space clusters, epsilon sensitivity, and cluster sizes."),
+        ("pca", "Clustering & Dimension Reduction", "Principal Component Analysis (PCA)", "fa-compress-arrows-alt", "#0284c7", ["pca_scree_plot.png", "pca_2d_scatter.png", "pca_feature_loadings.png"], "Explained variance, two-component projection, and feature loadings."),
+        ("tsne", "Clustering & Dimension Reduction", "t-SNE", "fa-braille", "#7c3aed", ["tsne_perplexity_comparison.png", "tsne_by_agency.png", "tsne_by_status.png"], "Embeddings compared by perplexity, agency, and complaint status."),
+    ]
+    for section_id, group, title, icon, color, filenames, description in model_sections:
+        available = [f for f in filenames if f in model_imgs]
+        sections.append({
+            "id": section_id,
+            "group": group,
+            "icon": icon,
+            "title": title,
+            "desc": description,
+            "color": color,
+            "about": description,
+            "keypoints": [],
+            "imgs": [(f, label(f), "model_image") for f in available],
+        })
     total = sum(len(s["imgs"]) for s in sections)
     return render_template("visualization.html", sections=sections, total=total)
 
@@ -748,6 +762,7 @@ def reports():
     model_images = []
     model_csvs   = []
     model_results = []
+    report_models = []
     if os.path.isdir(MODEL_RES):
         model_images = sorted(
             f for f in os.listdir(MODEL_RES)
@@ -765,11 +780,44 @@ def reports():
                 model_results = df_results.to_dict("records")
             except Exception:
                 pass
+    metric_by_name = {str(row.get("Model", "")): row for row in model_results}
+    report_catalog = [
+        ("Logistic Regression", "M2", "Classification", ["logistic_regression_confusion_matrix.png"], ""),
+        ("Decision Tree", "M3", "Classification", ["decision_tree_confusion_matrix.png"], ""),
+        ("Random Forest", "M3", "Classification", ["random_forest_confusion_matrix.png"], ""),
+        ("Gradient Boosting", "M3", "Classification", ["gradient_boosting_confusion_matrix.png"], ""),
+        ("AdaBoost", "M3", "Classification", ["adaboost_confusion_matrix.png"], ""),
+        ("Cross-Validation (All Classifiers)", "M3", "Evaluation", ["model_comparison.png"], "5-fold classifier evaluation; see the comparison chart for model results."),
+        ("K-Means Clustering", "M4", "Clustering", ["kmeans_elbow_silhouette.png", "kmeans_cluster_visualization.png", "kmeans_cluster_sizes.png"], "Best K=5; silhouette score 0.478."),
+        ("Hierarchical Clustering", "M4", "Clustering", ["hierarchical_dendrogram.png", "hierarchical_linkage_comparison.png", "hierarchical_cluster_visualization.png"], "Ward linkage, K=5; silhouette score 0.4832."),
+        ("Anomaly Detection (Isolation Forest)", "M4", "Anomaly Detection", ["anomaly_detection_pca.png", "anomaly_score_distribution.png", "anomaly_contamination_sensitivity.png"], "5% contamination setting; anomaly counts and scores are shown in the charts."),
+        ("DBSCAN (Raw Dataset)", "M4", "Clustering", ["dbscan_raw_geographic.png", "dbscan_raw_eps_sensitivity.png"], "Geographic clustering; eps=0.02; 4 clusters in the saved sample."),
+        ("DBSCAN (Pre-Processed)", "M4", "Clustering", ["dbscan_preprocessed_clusters.png", "dbscan_preprocessed_eps_sensitivity.png"], "Feature-space clustering; eps=0.8; cluster and noise counts are shown in the charts."),
+        ("PCA", "M4", "Dimensionality Reduction", ["pca_scree_plot.png", "pca_2d_scatter.png", "pca_feature_loadings.png"], "Two-component projection explains 93.9% of variance."),
+        ("t-SNE", "M4", "Dimensionality Reduction", ["tsne_perplexity_comparison.png", "tsne_by_agency.png"], "Embedding comparison uses perplexity values 10, 30, and 50."),
+    ]
+    available_images = set(model_images)
+    for name, module, model_type, charts, evaluation in report_catalog:
+        report_models.append({
+            "name": name,
+            "module": module,
+            "type": model_type,
+            "metrics": metric_by_name.get(name, {}),
+            "metric_label": "Held-out test metrics",
+            "evaluation": evaluation,
+            "charts": [filename for filename in charts if filename in available_images],
+        })
+    report_ranked_models = sorted(report_models, key=lambda model: (
+        0 if model["name"] in metric_by_name else 1,
+        -float(model["metrics"].get("Accuracy", -1) or -1),
+    ))
     return render_template(
         "reports.html",
         model_images=model_images,
         model_csvs=model_csvs,
         model_results=model_results,
+        report_models=report_models,
+        report_ranked_models=report_ranked_models,
     )
 
 
@@ -989,12 +1037,12 @@ def models_page():
 
     # Map model slug → its result images
     MODEL_CHART_MAP = {
-        "logistic_regression": ["logistic_regression_confusion_matrix.png"],
-        "decision_tree"       : ["decision_tree_confusion_matrix.png"],
-        "random_forest"       : ["random_forest_confusion_matrix.png"],
-        "gradient_boosting"   : ["gradient_boosting_confusion_matrix.png"],
-        "adaboost"            : ["adaboost_confusion_matrix.png"],
-        "cv_all"              : ["cv_all_classifiers.png"],
+        "logistic_regression": ["logistic_regression_confusion_matrix.png", "logistic_regression_metrics.png", "logistic_regression_feature_importance.png"],
+        "decision_tree"       : ["decision_tree_confusion_matrix.png", "decision_tree_metrics.png", "decision_tree_feature_importance.png"],
+        "random_forest"       : ["random_forest_confusion_matrix.png", "random_forest_metrics.png", "random_forest_feature_importance.png"],
+        "gradient_boosting"   : ["gradient_boosting_confusion_matrix.png", "gradient_boosting_metrics.png", "gradient_boosting_feature_importance.png"],
+        "adaboost"            : ["adaboost_confusion_matrix.png", "adaboost_metrics.png", "adaboost_feature_importance.png"],
+        "cv_all"              : ["model_comparison.png", "classifier_accuracy_comparison.png", "classifier_f1_comparison.png"],
         "kmeans"              : ["kmeans_elbow_silhouette.png",
                                  "kmeans_cluster_visualization.png",
                                  "kmeans_cluster_sizes.png"],
@@ -1005,19 +1053,46 @@ def models_page():
                                  "anomaly_score_distribution.png",
                                  "anomaly_contamination_sensitivity.png"],
         "dbscan_raw"          : ["dbscan_raw_geographic.png",
-                                 "dbscan_raw_eps_sensitivity.png"],
+                                 "dbscan_raw_eps_sensitivity.png",
+                                 "dbscan_raw_cluster_sizes.png"],
         "dbscan_preproc"      : ["dbscan_preprocessed_clusters.png",
-                                 "dbscan_preprocessed_eps_sensitivity.png"],
+                                 "dbscan_preprocessed_eps_sensitivity.png",
+                                 "dbscan_preprocessed_cluster_sizes.png"],
         "pca"                 : ["pca_scree_plot.png",
                                  "pca_2d_scatter.png",
                                  "pca_feature_loadings.png"],
         "tsne"                : ["tsne_perplexity_comparison.png",
-                                 "tsne_by_agency.png"],
+                                 "tsne_by_agency.png",
+                                 "tsne_by_status.png"],
     }
+    MODEL_EVALUATION = {
+        "cv_all": "5-fold stratified cross-validation; fold scores and variation are shown in the charts.",
+        "kmeans": "5 clusters; best silhouette score 0.478 (15,000-row sample).",
+        "hierarchical": "Ward linkage with 5 clusters; silhouette score 0.4832.",
+        "isolation_forest": "5% contamination setting; anomaly counts and score distribution are shown in the charts.",
+        "dbscan_raw": "4 geographic clusters and 3 noise points in the 15,000-row sample (eps=0.02).",
+        "dbscan_preproc": "1 cluster and 1 noise point in the 10,000-row sample (eps=0.8).",
+        "pca": "Two-component projection explains 93.9% of variance; component loadings and scree plot are included.",
+        "tsne": "Embedding comparisons use perplexity values 10, 30, and 50; see charts for results.",
+    }
+    results_by_model = {str(row.get("Model", "")): row for row in results}
+    proxy_path = os.path.join(model_res_dir, "model_proxy_results.csv")
+    if os.path.isfile(proxy_path):
+        try:
+            proxy_df = pd.read_csv(proxy_path)
+            proxy_by_model = {str(row.get("Model", "")): row for row in proxy_df.to_dict("records")}
+            results_by_model.update(proxy_by_model)
+        except Exception:
+            proxy_by_model = {}
+    else:
+        proxy_by_model = {}
     # Only include charts that actually exist on disk
     for m in models_info:
         slug   = m["slug"]
         charts = MODEL_CHART_MAP.get(slug, [])
+        m["metrics"] = results_by_model.get(m["name"], {})
+        m["metric_label"] = "Status-prediction proxy (held-out sample)" if slug in proxy_by_model else "Held-out test metrics"
+        m["evaluation"] = MODEL_EVALUATION.get(slug, "")
         m["charts"] = [
             c for c in charts
             if os.path.isfile(os.path.join(model_res_dir, c))

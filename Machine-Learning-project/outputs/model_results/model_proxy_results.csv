@@ -1,0 +1,8 @@
+Model,Accuracy,Precision,Recall,F1_Score
+K-Means Clustering,50.13,56.47,50.13,52.14
+Hierarchical Clustering,50.4,57.32,50.4,52.55
+Anomaly Detection (Isolation Forest),59.07,59.46,59.07,58.43
+DBSCAN (Raw Dataset),61.2,51.77,61.2,49.21
+DBSCAN (Pre-Processed),68.67,77.63,68.67,69.89
+PCA,66.8,69.3,66.8,67.65
+t-SNE,47.47,55.26,47.47,50.04

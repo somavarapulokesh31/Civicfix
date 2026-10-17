@@ -9,8 +9,15 @@
   </div>
 </div>
 
+{% set group_state = namespace(current='') %}
 {% for s in sections %}
 {% if s.imgs %}
+{% if s.group != group_state.current %}
+<div class="panel-title mt-4 mb-3" style="font-size:16px;font-weight:700;color:var(--navy)">
+  <i class="fa-solid fa-layer-group me-2" style="color:var(--green)"></i>{{ s.group }}
+</div>
+{% set group_state.current = s.group %}
+{% endif %}
 <!-- ══ SECTION CARD ════════════════════════════════════════ -->
 <div class="panel mb-3" style="padding:0;overflow:hidden">
 
@@ -27,7 +34,9 @@
     </div>
     <!-- Title + desc -->
     <div style="flex:1;min-width:0">
-      <div style="font-size:15px;font-weight:700;color:var(--navy)">{{ s.title }}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px">
+        <span style="font-size:15px;font-weight:700;color:var(--navy)">{{ s.title }}</span>
+      </div>
       <div style="font-size:12.5px;color:var(--gray);margin-top:2px">{{ s.desc }}</div>
     </div>
     <!-- Count badge -->
@@ -108,16 +117,7 @@
 <div class="panel text-center py-5" style="color:var(--text-s)">
   <i class="fa-solid fa-chart-bar fa-3x mb-3 d-block"></i>
   <h5 style="color:var(--navy)">No Charts Generated Yet</h5>
-  <p style="font-size:13px;max-width:400px;margin:0 auto 16px">Run these scripts first:</p>
-  <div class="d-flex flex-column gap-2 align-items-center">
-    {% for cmd in ['python src/EDA_analysis.py',
-                   'python src/Correlation_Matrix_heatmap_boxplots_M1.py',
-                   'python src/clean_embedding_encode_M2.py',
-                   'python src/run_all_models.py',
-                   'python src/run_clustering.py'] %}
-    <code style="background:var(--gray-l);padding:6px 16px;border-radius:7px;font-size:13px">{{ cmd }}</code>
-    {% endfor %}
-  </div>
+  <p style="font-size:13px;max-width:400px;margin:0 auto">Charts will appear here when visualization results are available.</p>
 </div>
 {% endif %}
 
